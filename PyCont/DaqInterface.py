@@ -13,7 +13,8 @@ from ctypes import byref, c_int32
 import numpy as np
 
 
-def GetDevName():
+def GetDevName(self,):
+    print 'ReadAnalog GetDevName'
     # Get Device Name of Daq Card
     n = 1024
     buff = ctypes.create_string_buffer(n)
@@ -22,10 +23,10 @@ def GetDevName():
         value = buff.value.decode()
     else:
         value = buff.value
+    value.split(',')[0]
     Dev = value + '/{}'
 
     return Dev
-
 
 ##############################################################################
 
@@ -163,7 +164,6 @@ class WriteDigital(Daq.Task):
         print(Sig, 'SIGNAL')
         self.WriteDigitalLines(1, 1, 10.0, Daq.DAQmx_Val_GroupByChannel,
                                Sig, None, None)
-
 
     def SetContSignal(self, Signal):
         print('SetContSignal')
