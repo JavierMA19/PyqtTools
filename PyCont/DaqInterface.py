@@ -13,7 +13,7 @@ from ctypes import byref, c_int32
 import numpy as np
 
 
-def GetDevName():
+def GetDevName(self,):
     print 'ReadAnalog GetDevName'
     # Get Device Name of Daq Card
     n = 1024
@@ -23,9 +23,16 @@ def GetDevName():
         value = buff.value.decode()
     else:
         value = buff.value
-    print(value)
-    val = value.split(',')[0]
-    Dev = val + '/{}'
+
+    Dev = None
+    value = value.replace(' ', '')
+    for dev in value.split(','):
+        if dev.startswith('Sim'):
+            continue
+        Dev = dev + '/{}'
+
+    if Dev is None:
+        print 'ERRROORR dev not found ', value
 
     return Dev
 
