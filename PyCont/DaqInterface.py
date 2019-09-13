@@ -14,7 +14,7 @@ import numpy as np
 
 
 def GetDevName():
-    print 'ReadAnalog GetDevName'
+    print('ReadAnalog GetDevName')
     # Get Device Name of Daq Card
     n = 1024
     buff = ctypes.create_string_buffer(n)
@@ -32,7 +32,7 @@ def GetDevName():
         Dev = dev + '/{}'
 
     if Dev is None:
-        print 'ERRROORR dev not found ', value
+        print('ERRROORR dev not found ', value)
 
     return Dev
 
@@ -167,7 +167,7 @@ class WriteDigital(Daq.Task):
         self.StopTask()
 
     def SetDigitalSignal(self, Signal):
-        print 'SetDigSignal', Signal, Signal.shape
+        print('SetDigSignal', Signal, Signal.shape)
         Sig = np.array(Signal, dtype=np.uint8)
         print(Sig, 'SIGNAL')
         self.WriteDigitalLines(1, 1, 10.0, Daq.DAQmx_Val_GroupByChannel,
