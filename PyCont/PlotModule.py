@@ -39,6 +39,10 @@ PlotterPars = ({'name': 'Fs',
                 'type': 'float',
                 'siPrefix': True,
                 'suffix': 'Hz'},
+               {'name': 'PlotEnable',
+                'title': 'Plot Enable',
+                'type': 'bool',
+                'value': True},
                {'name': 'nChannels',
                 'readonly': True,
                 'type': 'int',
@@ -106,7 +110,7 @@ class PlotterParameters(pTypes.GroupParameter):
     def GetParams(self):
         PlotterKwargs = {}
         for p in self.children():
-            if p.name() in ('Channels', 'Windows'):
+            if p.name() in ('Channels', 'Windows', 'PlotEnable'):
                 continue
             PlotterKwargs[p.name()] = p.value()
 
@@ -128,10 +132,14 @@ class PlotterParameters(pTypes.GroupParameter):
 class PgPlotWindow(Qt.QWidget):
     def __init__(self):
         super(PgPlotWindow, self).__init__()
-        layout = Qt.QVBoxLayout(self)
+        layout = Qt.QVBoxLayout(self) #crea el layout
         self.pgLayout = pg.GraphicsLayoutWidget()
+        self.pgLayout.setFocusPolicy(Qt.Qt.WheelFocus)
         layout.addWidget(self.pgLayout)
+        self.setLayout(layout) #to install the QVBoxLayout onto the widget
+        self.setFocusPolicy(Qt.Qt.WheelFocus)
         self.show()
+
 
 ##############################################################################
 
@@ -271,6 +279,10 @@ class Plotter(Qt.QThread):
     def AddData(self, NewData):
         self.Buffer.AddData(NewData)
 
+    def stop(self):
+        for wind in self.Winds:
+            wind.close()
+        self.terminate()
 
 ##############################################################################
 
@@ -279,7 +291,7 @@ PSDPars = ({'name': 'Fs',
             'type': 'float',
             'siPrefix': True,
             'suffix': 'Hz'},
-           {'name': 'PSD Enable',
+           {'name': 'PSDEnable',
             'type': 'bool',
             'value': True},
            {'name': 'Fmin',
@@ -408,5 +420,8 @@ class PSDPlotter(Qt.QThread):
     def AddData(self, NewData):
         self.Buffer.AddData(NewData)
 
+    def stop(self):
+        self.wind.close()
+        self.terminate()
 
 
