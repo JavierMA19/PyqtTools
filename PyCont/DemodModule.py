@@ -43,16 +43,6 @@ DemodulParams = ({'name': 'DemodConfig',
                                 'type': 'list',
                                 'values': ['Real', 'Imag', 'Angle', 'Abs'],
                                 'value': 'Abs'},
-#                               {'name': 'MaxSlope',
-#                                'title':'Maximum Slope',
-#                                'type': 'float',
-#                                'value': 1e-10},
-#                               {'name': 'TimeOut',
-#                                'title':'Max Time for Stabilization',
-#                                'type': 'int',
-#                                'value': 10,
-#                                'siPrefix': True,
-#                                'suffix': 's'},
                               )
                 })
                   
@@ -68,7 +58,6 @@ class DemodParameters(pTypes.GroupParameter):
         self.DSFs = self.DemConfig.param('DSFs')
         self.DSFact = self.DemConfig.param('DSFact')
         self.on_DSFact_changed()
-#        self.DSFact.sigValueChanged.connect(self.on_DSFact_changed)
         self.FsDem.sigValueChanged.connect(self.on_FsDem_changed)
         self.FiltOrder = self.DemConfig.param('FiltOrder')
         self.OutType = self.DemConfig.param('OutType')
