@@ -59,7 +59,6 @@ class SaveSweepParameters(pTypes.GroupParameter):
     def GetParams(self):
         Config = {}
         for Conf in self.SvSwParams.children():
-            print(Conf,self.SvSwParams.children())
             if Conf.name() == 'Save File':
                 continue
             Config[Conf.name()] = Conf.value()

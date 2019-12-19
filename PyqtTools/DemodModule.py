@@ -76,6 +76,13 @@ class DemodParameters(pTypes.GroupParameter):
         self.DSFs.setValue(DSFs)
         
     def GetParams(self):
+        '''Functions that return the Parameters of the Demodulation Process
+           Returns a dictionary:
+           {'FsDemod': 500000.0, 
+            'DSFact': 100, 
+            'FiltOrder': 2, 
+            'OutType': 'Abs'}
+        '''
         Demod = {}
         for Config in self.DemConfig.children():
             if Config.name() == 'DemEnable':
@@ -83,10 +90,20 @@ class DemodParameters(pTypes.GroupParameter):
             if Config.name() == 'DSFs':
                 continue
             Demod[Config.name()] = Config.value()
-        
         return Demod
     
     def GetChannels(self, Rows, Fcs):
+        '''Function that returns a dictionary with the names of demodulation channels and indexes
+            {'Ch01Col1':0,
+             'Ch02Col1':1,
+             'Ch03Col1':2,
+             'Ch04Col1':3,
+             'Ch05Col1':4,
+             'Ch06Col1':5,
+             'Ch07Col1':6,
+             'Ch08Col1':7,
+            }
+        '''
         DemChnNames = {}
         i=0
         for r in Rows:
@@ -118,7 +135,14 @@ class Filter():
 
 class Demod():
     def __init__(self, Fc, FetchSize, Fs, DownFact, Order, Signal):
-
+        ''' Demodulation Class, applies the filters and the resampling process.
+            Fc: float. Frequency of the Carrier used for Modulation
+            FetchSize: int. Defines the number of samples of the buffer of acquisition
+            Fs: float. Sampling Frequency used for acquisition process
+            DownFact: int. Down Sampling Factor to calculate Sampling Frequency of the demodulation process
+            Order: int. Order of the internal filter of the process
+            Signal: array. Contains the values that forms the carrier signal used in Modulation
+        '''
         self.Fs = Fs
         self.Fc = Fc
         self.DownFact = DownFact
@@ -148,6 +172,19 @@ class Demod():
 class DemodThread(Qt.QThread):
     NewData = Qt.pyqtSignal()
     def __init__(self, Fcs, RowList, FetchSize, FsDemod, DSFact, FiltOrder, Signal, **Keywards):
+       '''Initialization of Demodulation Process Thread
+          Fcs: dictionary. returns the name of the columns with its carrier frequency
+                           {'Col1': 30000.0}
+          RowList: array. Contains the names of the rows that are being acquired
+                          ['Ch04', 'Ch05', 'Ch06']
+          FetchSize: int. Defines the number of samples to fill the buffer.
+          FsDemod: float. Specifies the Sampling Frequency of the Acquisition process
+          DSFacti: int. Specifies de DownSampling Factor to reduce sampling frequency
+          FiltOrder: int. Defines the order of the internal filter of the demodulation process
+          Signal: array. Contains the values that forms the carrier signal used in Modulation process
+          Keywords: dictionary. Contains the output Type of demodulation, absolut, real, imaginary or angle
+                                {'OutType': 'Abs'}    
+       '''
        super(DemodThread, self).__init__() 
        self.ToDemData = None
        
