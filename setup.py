@@ -44,7 +44,7 @@ classifiers = ['Development Status :: 3 - Alpha',
                'Topic :: Scientific/Engineering',
                'Topic :: Software Development :: User Interfaces']
 
-setup(name="PyCont",
+setup(name="PyqtTools",
       version=_version,
       description="Time continuous acquisition tools",
       long_description=long_description,
