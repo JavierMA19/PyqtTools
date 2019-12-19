@@ -84,6 +84,14 @@ class SweepsConfig(pTypes.GroupParameter):
                                      self.VdParams.param('Vstep').value())
 
     def GetSweepsParams(self):
+        '''Returns de parameters to do the sweeps
+           SwConfig={'Enable': True, 
+                     'VgSweep': array([ 0. , -0.1, -0.2, -0.3]),
+                     'VdSweep': array([0.1]), 
+                     'MaxSlope': 1e-10, 
+                     'TimeOut': 10
+                     } 
+        '''
         SwConfig = {}
         for Config in self.SwConfig.children():
 
@@ -94,7 +102,6 @@ class SweepsConfig(pTypes.GroupParameter):
                 SwConfig[Config.name()]=self.VdSweepVals
                 continue
             SwConfig[Config.name()] = Config.value()
-            
         return SwConfig
         
         
