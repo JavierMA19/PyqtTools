@@ -50,12 +50,12 @@ class ReadAnalog(Daq.Task):
 
         Dev = GetDevName()
         for Ch in self.Channels:
-            if Diff == False:
+            if Diff is False:
                 self.CreateAIVoltageChan(Dev.format(Ch), "",
                                          Daq.DAQmx_Val_RSE,
                                          -Range, Range,
                                          Daq.DAQmx_Val_Volts, None)
-            if Diff == True:
+            if Diff is True:
                 self.CreateAIVoltageChan(Dev.format(Ch), "",
                                          Daq.DAQmx_Val_Diff,
                                          -Range, Range,
@@ -192,5 +192,3 @@ class WriteDigital(Daq.Task):
         print('End SetSingal', read)
 
 ##############################################################################
-
-
