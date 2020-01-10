@@ -86,7 +86,7 @@ class FileBuffer():
 
 
 class DataSavingThread(Qt.QThread):
-    def __init__(self, FileName, nChannels, MaxSize=None):
+    def __init__(self, FileName, nChannels, MaxSize=None, dtype='float'):
         super(DataSavingThread, self).__init__()
         self.NewData = None
         self.FileBuff = FileBuffer(FileName=FileName,
@@ -105,6 +105,10 @@ class DataSavingThread(Qt.QThread):
         if self.NewData is not None:
             print('Error Saving !!!!')
         self.NewData = NewData
+    
+    def stop (self):
+        self.FileBuff.h5File.close()
+        self.terminate()
 
 
 
@@ -153,3 +157,27 @@ class SaveSateParameters(pTypes.GroupParameter):
             with open(RecordFile, 'wb') as file:
                 file.write(pickle.dumps(parent.saveState()))
 
+
+def GenArchivo(name, dic2Save):
+    """
+    Generate a file of type .dat that saves a dictionary
+    
+    name: the name the saved file will have
+        'name.dat'
+    dic2Save: the dictionary is wanted to be saved
+    No Outputs
+    """
+    with open(name, "wb") as f:
+        pickle.dump(dic2Save, f)
+            
+def ReadArchivo(name):
+    """
+    Generate a file of type .dat that saves a dictionary
+    
+    name: the name of the file to open. it is need:
+        ·All the directory path if it is on a diferent folder from the script.
+        ·The extention of the file
+    pickle.load(): returns the read dictionary from file
+    """
+    with open(name, "rb") as f:
+        return pickle.load(f ,encoding = 'latin1')
