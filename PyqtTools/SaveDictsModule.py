@@ -249,3 +249,4 @@ class SaveDicts(QObject):
         with open(self.FileName, "wb") as f:
             pickle.dump(Dcdict, f)
             pickle.dump(Acdict, f)
+
