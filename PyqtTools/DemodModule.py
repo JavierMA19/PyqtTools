@@ -178,7 +178,7 @@ class DemodThread(Qt.QThread):
     NewData = Qt.pyqtSignal()
 
     def __init__(self, Fcs, RowList, FetchSize, FsDemod, DSFact,
-                 FiltOrder, Signal, **Keywards):
+                 FiltOrder, Signal, Gain, **Keywards):
         '''Initialization of Demodulation Process Thread
            Fcs: dictionary. returns the name of the columns with its carrier
                             frequency
@@ -202,6 +202,7 @@ class DemodThread(Qt.QThread):
         super(DemodThread, self).__init__()
         self.ToDemData = None
 
+        self.Gain = Gain
         self.DemOutputs = []
         self.NamesForDict = []
         for Row in RowList:
@@ -223,7 +224,7 @@ class DemodThread(Qt.QThread):
                 for ir, rows in enumerate(self.DemOutputs):
                     for instance in rows:
                         data = instance.Apply(self.ToDemData[:, ir])
-                        self.OutDemodData[:, ind] = data
+                        self.OutDemodData[:, ind] = data/self.Gain
                         ind = ind + 1
 
                 self.NewData.emit()
