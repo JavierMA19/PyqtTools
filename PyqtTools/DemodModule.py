@@ -224,7 +224,10 @@ class DemodThread(Qt.QThread):
                 for ir, rows in enumerate(self.DemOutputs):
                     for instance in rows:
                         data = instance.Apply(self.ToDemData[:, ir])
-                        self.OutDemodData[:, ind] = data/self.Gain
+                        #factor 2 a causa de la demodulación ya que el resultado
+                        #es (1/2)*Vin*Vcoi y dividido por la ganancia para tener
+                        #corriente
+                        self.OutDemodData[:, ind] = 2*data/self.Gain
                         ind = ind + 1
 
                 self.NewData.emit()
