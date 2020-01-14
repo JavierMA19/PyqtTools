@@ -14,7 +14,7 @@ import numpy as np
 
 
 def GetDevName():
-    print('ReadAnalog GetDevName')
+#    print('ReadAnalog GetDevName')
     # Get Device Name of Daq Card
     n = 1024
     buff = ctypes.create_string_buffer(n)
@@ -83,20 +83,20 @@ class ReadAnalog(Daq.Task):
         self.ContSamps = False
 
     def EveryNCallback(self):
-        print('Every')
+#        print('Every')
         read = c_int32()
         data = np.zeros((self.EverySamps, len(self.Channels)))
         self.ReadAnalogF64(self.EverySamps, 10.0,
                            Daq.DAQmx_Val_GroupByScanNumber,
                            data, data.size, byref(read), None)
 
-        print('EveryN')
+#        print('EveryN')
 
         if not self.ContSamps:
             self.data = np.vstack((self.data, data))
 
         if self.EveryNEvent:
-            print('Call')
+#            print('Call')
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):
@@ -173,14 +173,14 @@ class WriteDigital(Daq.Task):
         self.StopTask()
 
     def SetDigitalSignal(self, Signal):
-        print('SetDigSignal', Signal, Signal.shape)
+#        print('SetDigSignal', Signal, Signal.shape)
         Sig = np.array(Signal, dtype=np.uint8)
-        print(Sig, 'SIGNAL')
+#        print(Sig, 'SIGNAL')
         self.WriteDigitalLines(1, 1, 10.0, Daq.DAQmx_Val_GroupByChannel,
                                Sig, None, None)
 
     def SetContSignal(self, Signal):
-        print('SetContSignal')
+#        print('SetContSignal')
         read = c_int32()
         self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, Signal.shape[1])
@@ -189,6 +189,6 @@ class WriteDigital(Daq.Task):
                                Daq.DAQmx_Val_GroupByChannel,
                                Signal, byref(read), None)
         self.StartTask()
-        print('End SetSingal', read)
+#        print('End SetSingal', read)
 
 ##############################################################################
