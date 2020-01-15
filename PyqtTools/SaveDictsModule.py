@@ -132,7 +132,7 @@ class SaveDicts(QObject):
             self.DevDCVals[chn]['Ids'][SwVgsInd,
                                        SwVdsInd] = Ids[inds]
 
-        print('DCSaved')
+        # print('DCSaved')
 
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd):
         '''Function that Saves PSD Data in the AC Dict in the appropiate form
@@ -148,7 +148,7 @@ class SaveDicts(QObject):
             self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                     SwVgsInd] = psd[:, inds].flatten()
             self.DevACVals[chn]['Fpsd'] = ff
-        print('ACSaved')
+        # print('ACSaved')
         self.PSDSaved.emit()
 
     def SaveDicts(self, Dcdict, Acdict, Folder, Oblea, Disp, Name, Cycle):
@@ -249,4 +249,5 @@ class SaveDicts(QObject):
         with open(self.FileName, "wb") as f:
             pickle.dump(Dcdict, f)
             pickle.dump(Acdict, f)
+        print('Saved')
 
