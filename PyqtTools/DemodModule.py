@@ -215,7 +215,7 @@ class DemodThread(Qt.QThread):
             self.DemOutputs.append(DemOut)
         self.OutDemodData = np.ndarray((round(FetchSize/DSFact),
                                         round(len(RowList)*len(Fcs.keys()))),
-                                       dtype=float)
+                                        dtype=complex)
 
     def run(self):
         while True:
