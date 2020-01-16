@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 import PyGFETdb.DataStructures as PyData
 
+import numpy as np
 import pickle
 
 # ###############################PRAMETERES TREE##############################
@@ -100,12 +101,16 @@ class SaveDicts(QObject):
         super(SaveDicts, self).__init__()
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = {}
-        index = 0
-        for ch in sorted(Channels):
+        # Se hace un enumerate para tener indices de 0 a X para las
+        # rows activas (no es lo mismo este valor que el indice de entrada
+        # de la daqcard que siempre es fijo independientemente de las rows
+        # activas)
+        for ch, index in enumerate(sorted(Channels)):
             self.ChannelIndex[ch] = (index)
 
         # DC dictionaries
-        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,
+        # Vds se divide por raiz de 2 para guardar su valor RMS
+        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals/np.sqrt(2),
                                              nVgs=SwVgsVals,
                                              ChNames=self.ChNamesList,
                                              Gate=Gate)
@@ -115,7 +120,8 @@ class SaveDicts(QObject):
 
         Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
         nFgm = np.array([])
-        self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
+        # Vds se divide por raiz de 2 para guardar su valor RMS
+        self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals/np.sqrt(2),
                                              nVgs=SwVgsVals,
                                              nFgm=nFgm,
                                              nFpsd=Fpsd,
