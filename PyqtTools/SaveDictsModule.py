@@ -105,8 +105,10 @@ class SaveDicts(QObject):
         # rows activas (no es lo mismo este valor que el indice de entrada
         # de la daqcard que siempre es fijo independientemente de las rows
         # activas)
-        for ch, index in enumerate(sorted(Channels)):
+        index = 0
+        for ch in sorted(Channels):
             self.ChannelIndex[ch] = (index)
+            index = index+1
 
         # DC dictionaries
         # Vds se divide por raiz de 2 para guardar su valor RMS
