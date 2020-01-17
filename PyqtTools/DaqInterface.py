@@ -131,10 +131,10 @@ class WriteAnalog(Daq.Task):
         self.WriteAnalogScalarF64(1, -1, value, None)
         self.StopTask()
 
-    def SetSignal(self, Signal, nSamps):
+    def SetSignal(self, Signal, nSamps, FsBase='ai/SampleClock', FsDiv=1):
         read = c_int32()
 
-        self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
+        self.CfgSampClkTiming(FsBase, FsDiv, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_FiniteSamps, nSamps)
 
         self.CfgDigEdgeStartTrig('ai/StartTrigger', Daq.DAQmx_Val_Rising)
@@ -142,10 +142,10 @@ class WriteAnalog(Daq.Task):
                             Signal, byref(read), None)
         self.StartTask()
 
-    def SetContSignal(self, Signal, nSamps):
+    def SetContSignal(self, Signal, nSamps, FsBase='ai/SampleClock', FsDiv=1):
         read = c_int32()
 
-        self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
+        self.CfgSampClkTiming(FsBase, FsDiv, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, nSamps)
 
         self.CfgDigEdgeStartTrig('ai/StartTrigger', Daq.DAQmx_Val_Rising)
