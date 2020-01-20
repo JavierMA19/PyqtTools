@@ -142,10 +142,10 @@ class WriteAnalog(Daq.Task):
                             Signal, byref(read), None)
         self.StartTask()
 
-    def SetContSignal(self, Signal, nSamps, FsBase='ai/SampleClock', FsDiv=1):
+    def SetContSignal(self, Signal, nSamps, FsBase='20MHzTimebase', FsDiv=2e6):
         read = c_int32()
 
-        self.CfgSampClkTiming(FsBase, FsDiv, Daq.DAQmx_Val_Rising,
+        self.CfgSampClkTiming("", FsDiv, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, nSamps)
 
         self.CfgDigEdgeStartTrig('ai/StartTrigger', Daq.DAQmx_Val_Rising)
