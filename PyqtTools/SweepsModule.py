@@ -80,10 +80,13 @@ class SweepsConfig(pTypes.GroupParameter):
         self.VgSweepVals = np.arange(self.VgParams.param('Vinit').value(),
                                      self.VgParams.param('Vfinal').value(),
                                      self.VgParams.param('Vstep').value())
+        np.append(self.VgSweepVals,0)
+        print(self.VgSweepVals)
 
         self.VdSweepVals = np.arange(self.VdParams.param('Vinit').value(),
                                      self.VdParams.param('Vfinal').value(),
                                      self.VdParams.param('Vstep').value())
+        np.append(self.VdSweepVals,0)
 
     def GetSweepsParams(self):
         '''Returns de parameters to do the sweeps
