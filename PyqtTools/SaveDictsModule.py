@@ -113,7 +113,7 @@ class SaveDicts(QObject):
         # DC dictionaries
         # Vds se divide por raiz de 2 para guardar su valor RMS
         self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals/np.sqrt(2),
-                                             nVgs=SwVgsVals,
+                                             nVgs=np.abs(SwVgsVals),
                                              ChNames=self.ChNamesList,
                                              Gate=Gate)
         # AC dictionaries
@@ -124,7 +124,7 @@ class SaveDicts(QObject):
         nFgm = np.array([])
         # Vds se divide por raiz de 2 para guardar su valor RMS
         self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals/np.sqrt(2),
-                                             nVgs=SwVgsVals,
+                                             nVgs=np.abs(SwVgsVals),
                                              nFgm=nFgm,
                                              nFpsd=Fpsd,
                                              ChNames=self.ChNamesList)

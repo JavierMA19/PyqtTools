@@ -26,11 +26,16 @@ SweepsParams = {'name': 'SweepsConfig',
                                                     'value': -0.4,
                                                     'siPrefix': True,
                                                     'suffix': 'V'},
-                                                   {'name': 'Vstep',
-                                                    'type': 'float',
-                                                    'value': -0.01,
+                                                   {'name': 'NSweeps',
+                                                    'type': 'int',
+                                                    'value': 1,
                                                     'siPrefix': True,
-                                                    'suffix': 'V'},
+                                                    'suffix': 'Sweeps'},
+#                                                   {'name': 'Vstep',
+#                                                    'type': 'float',
+#                                                    'value': -0.01,
+#                                                    'siPrefix': True,
+#                                                    'suffix': 'V'},
                                                    )},
                              {'name': 'VdSweep',
                               'type': 'group',
@@ -44,11 +49,16 @@ SweepsParams = {'name': 'SweepsConfig',
                                             'value': 0.2,
                                             'siPrefix': True,
                                             'suffix': 'V'},
-                                           {'name': 'Vstep',
-                                            'type': 'float',
-                                            'value': 0.01,
+                                           {'name': 'NSweeps',
+                                            'type': 'int',
+                                            'value': 1,
                                             'siPrefix': True,
-                                            'suffix': 'V'},
+                                            'suffix': 'Sweeps'},
+#                                           {'name': 'Vstep',
+#                                            'type': 'float',
+#                                            'value': 0.01,
+#                                            'siPrefix': True,
+#                                            'suffix': 'V'},
                                            )},
                              {'name': 'MaxSlope',
                               'title': 'Maximum Slope',
@@ -77,13 +87,20 @@ class SweepsConfig(pTypes.GroupParameter):
         self.on_Sweeps_Changed()
 
     def on_Sweeps_Changed(self):
-        self.VgSweepVals = np.arange(self.VgParams.param('Vinit').value(),
-                                     self.VgParams.param('Vfinal').value(),
-                                     self.VgParams.param('Vstep').value())
+#        self.VgSweepVals = np.arange(self.VgParams.param('Vinit').value(),
+#                                     self.VgParams.param('Vfinal').value(),
+#                                     self.VgParams.param('Vstep').value())
+#
+#        self.VdSweepVals = np.arange(self.VdParams.param('Vinit').value(),
+#                                     self.VdParams.param('Vfinal').value(),
+#                                     self.VdParams.param('Vstep').value())
+        self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
+                                       self.VgParams.param('Vfinal').value(),
+                                       self.VgParams.param('NSweeps').value())
 
-        self.VdSweepVals = np.arange(self.VdParams.param('Vinit').value(),
-                                     self.VdParams.param('Vfinal').value(),
-                                     self.VdParams.param('Vstep').value())
+        self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
+                                       self.VdParams.param('Vfinal').value(),
+                                       self.VdParams.param('NSweeps').value())
 
     def GetSweepsParams(self):
         '''Returns de parameters to do the sweeps
