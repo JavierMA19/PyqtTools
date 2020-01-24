@@ -16,19 +16,19 @@ SweepsParams = {'name': 'SweepsConfig',
                               'value': True, },
                              {'name': 'VgSweep',
                                       'type': 'group',
-                                      'children': ({'name': 'Vinit',
+                                      'children': ({'name': 'Vgs_init',
                                                     'type': 'float',
                                                     'value': 0,
                                                     'siPrefix': True,
                                                     'suffix': 'V'},
-                                                   {'name': 'Vfinal',
+                                                   {'name': 'Vgs_final',
                                                     'type': 'float',
-                                                    'value': -0.4,
+                                                    'value': 0.4,
                                                     'siPrefix': True,
                                                     'suffix': 'V'},
                                                    {'name': 'NSweeps',
                                                     'type': 'int',
-                                                    'value': 1,
+                                                    'value': 20,
                                                     'siPrefix': True,
                                                     'suffix': 'Sweeps'},
 #                                                   {'name': 'Vstep',
@@ -39,14 +39,14 @@ SweepsParams = {'name': 'SweepsConfig',
                                                    )},
                              {'name': 'VdSweep',
                               'type': 'group',
-                              'children': ({'name': 'Vinit',
+                              'children': ({'name': 'Vds_init',
                                             'type': 'float',
-                                            'value': 0.02,
+                                            'value': 0.05,
                                             'siPrefix': True,
                                             'suffix': 'V'},
-                                           {'name': 'Vfinal',
+                                           {'name': 'Vds_final',
                                             'type': 'float',
-                                            'value': 0.2,
+                                            'value': 0.05,
                                             'siPrefix': True,
                                             'suffix': 'V'},
                                            {'name': 'NSweeps',
@@ -62,8 +62,17 @@ SweepsParams = {'name': 'SweepsConfig',
                                            )},
                              {'name': 'MaxSlope',
                               'title': 'Maximum Slope',
-                              'type': 'float',
-                              'value': 1e-10},
+                              'type': 'list',
+                              'values':[5e-8,
+                                        1e-6,
+                                        5e-7,
+                                        1e-7,
+                                        1e-8,
+                                        5e-9,
+                                        1e-9,
+                                        1e-10,
+                                        1
+                                        ]},
                              {'name': 'TimeOut',
                               'title': 'Max Time for Stabilization',
                               'type': 'int',
@@ -81,9 +90,11 @@ class SweepsConfig(pTypes.GroupParameter):
 
         self.VgParams = self.SwConfig.param('VgSweep')
         self.VdParams = self.SwConfig.param('VdSweep')
+        # self.DevCond = self.SwConfig.param('MaxSlope')
 
         self.VgParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.VdParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
+        # self.DevCond.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.on_Sweeps_Changed()
 
     def on_Sweeps_Changed(self):
@@ -94,20 +105,22 @@ class SweepsConfig(pTypes.GroupParameter):
 #        self.VdSweepVals = np.arange(self.VdParams.param('Vinit').value(),
 #                                     self.VdParams.param('Vfinal').value(),
 #                                     self.VdParams.param('Vstep').value())
-        self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
-                                       self.VgParams.param('Vfinal').value(),
+        self.VgSweepVals = np.linspace(self.VgParams.param('Vgs_init').value(),
+                                       self.VgParams.param('Vgs_final').value(),
                                        self.VgParams.param('NSweeps').value())
-        #se convierte el valor RMS a valor Pico a Pico
-        self.VdSweepVals = np.sqrt(2)*np.linspace(self.VdParams.param('Vinit').value(),
-                                       self.VdParams.param('Vfinal').value(),
+
+        self.VdSweepVals = np.linspace(self.VdParams.param('Vds_init').value(),
+                                       self.VdParams.param('Vds_final').value(),
                                        self.VdParams.param('NSweeps').value())
+
+        # self.DevCondition = self.DevCond.value()
 
     def GetSweepsParams(self):
         '''Returns de parameters to do the sweeps
            SwConfig={'Enable': True,
                      'VgSweep': array([ 0. , -0.1, -0.2, -0.3]),
                      'VdSweep': array([0.1]),
-                     'MaxSlope': 1e-10,
+                     'MaxSlope': 1e-9,
                      'TimeOut': 10
                      }
         '''

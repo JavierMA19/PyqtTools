@@ -8,7 +8,7 @@ Created on Thu Apr 23 10:30:42 2019
 
 from setuptools import setup, find_packages
 
-_version = '0.0.3'
+_version = '0.0.3.1'
 
 long_description = """
                    Tools for acquire continuously                 
@@ -52,8 +52,8 @@ setup(name="PyqtTools",
       author_email="Javier.Martinez@imb-cnm.csic.es",
       maintainer="Javier Martinez-Aguilar",
       maintainer_email="Javier.Martinez@imb-cnm.csic.es",
-      url="https://github.com/jmartinezaguilar/PyCont",
-      download_url="https://github.com/jmartinezaguilar/PyCont",
+      url="https://github.com/jmartinezaguilar/PyqtTools",
+      download_url="https://github.com/jmartinezaguilar/PyqtTools",
       license="GPLv3",
       packages=find_packages(),
       classifiers=classifiers,

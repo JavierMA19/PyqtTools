@@ -14,7 +14,7 @@ import numpy as np
 
 
 def GetDevName():
-#    print('ReadAnalog GetDevName')
+    print('ReadAnalog GetDevName')
     # Get Device Name of Daq Card
     n = 1024
     buff = ctypes.create_string_buffer(n)
@@ -50,18 +50,32 @@ class ReadAnalog(Daq.Task):
 
         Dev = GetDevName()
         for Ch in self.Channels:
-            if Diff is False:
+            if Diff == False:
                 self.CreateAIVoltageChan(Dev.format(Ch), "",
                                          Daq.DAQmx_Val_RSE,
                                          -Range, Range,
                                          Daq.DAQmx_Val_Volts, None)
-            if Diff is True:
+            if Diff == True:
                 self.CreateAIVoltageChan(Dev.format(Ch), "",
                                          Daq.DAQmx_Val_Diff,
                                          -Range, Range,
                                          Daq.DAQmx_Val_Volts, None)
 
         self.AutoRegisterDoneEvent(0)
+
+    def ReadData(self, Fs=1000, nSamps=10000, EverySamps=1000):
+
+        self.Fs = Fs
+        self.EverySamps = EverySamps
+
+        self.data = np.ndarray([len(self.Channels), ])
+
+        self.CfgSampClkTiming("", Fs, Daq.DAQmx_Val_Rising,
+                              Daq.DAQmx_Val_FiniteSamps, nSamps)
+
+        self.AutoRegisterEveryNSamplesEvent(Daq.DAQmx_Val_Acquired_Into_Buffer,
+                                            self.EverySamps, 0)
+        self.StartTask()
 
     def ReadContData(self, Fs, EverySamps):
         self.Fs = Fs
@@ -83,20 +97,20 @@ class ReadAnalog(Daq.Task):
         self.ContSamps = False
 
     def EveryNCallback(self):
-#        print('Every')
+        print('Every')
         read = c_int32()
         data = np.zeros((self.EverySamps, len(self.Channels)))
         self.ReadAnalogF64(self.EverySamps, 10.0,
                            Daq.DAQmx_Val_GroupByScanNumber,
                            data, data.size, byref(read), None)
 
-#        print('EveryN')
+        print('EveryN')
 
-        if not self.ContSamps:
-            self.data = np.vstack((self.data, data))
+        # if not self.ContSamps:
+        self.data = np.vstack((self.data, data))
 
         if self.EveryNEvent:
-#            print('Call')
+            print('Call')
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):
@@ -104,7 +118,7 @@ class ReadAnalog(Daq.Task):
         self.UnregisterEveryNSamplesEvent()
 
         if self.DoneEvent:
-            self.DoneEvent(self.data)
+            self.DoneEvent(self.data[1:, :])
 
         return 0  # The function should return an integer
 
@@ -131,10 +145,10 @@ class WriteAnalog(Daq.Task):
         self.WriteAnalogScalarF64(1, -1, value, None)
         self.StopTask()
 
-    def SetSignal(self, Signal, nSamps, FsBase='ai/SampleClock', FsDiv=1):
+    def SetSignal(self, Signal, nSamps):
         read = c_int32()
 
-        self.CfgSampClkTiming(FsBase, FsDiv, Daq.DAQmx_Val_Rising,
+        self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_FiniteSamps, nSamps)
 
         self.CfgDigEdgeStartTrig('ai/StartTrigger', Daq.DAQmx_Val_Rising)
@@ -142,10 +156,10 @@ class WriteAnalog(Daq.Task):
                             Signal, byref(read), None)
         self.StartTask()
 
-    def SetContSignal(self, Signal, nSamps, FsBase='ai/SampleClock', FsDiv=1):
+    def SetContSignal(self, Signal, nSamps):
         read = c_int32()
 
-        self.CfgSampClkTiming(FsBase, FsDiv, Daq.DAQmx_Val_Rising,
+        self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, nSamps)
 
         self.CfgDigEdgeStartTrig('ai/StartTrigger', Daq.DAQmx_Val_Rising)
@@ -173,14 +187,14 @@ class WriteDigital(Daq.Task):
         self.StopTask()
 
     def SetDigitalSignal(self, Signal):
-#        print('SetDigSignal', Signal, Signal.shape)
+        print('SetDigSignal', Signal, Signal.shape)
         Sig = np.array(Signal, dtype=np.uint8)
-#        print(Sig, 'SIGNAL')
+        print(Sig, 'SIGNAL')
         self.WriteDigitalLines(1, 1, 10.0, Daq.DAQmx_Val_GroupByChannel,
                                Sig, None, None)
 
     def SetContSignal(self, Signal):
-#        print('SetContSignal')
+        print('SetContSignal')
         read = c_int32()
         self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, Signal.shape[1])
@@ -189,6 +203,8 @@ class WriteDigital(Daq.Task):
                                Daq.DAQmx_Val_GroupByChannel,
                                Signal, byref(read), None)
         self.StartTask()
-#        print('End SetSingal', read)
+        print('End SetSingal', read)
 
 ##############################################################################
+
+
