@@ -137,6 +137,7 @@ class Filter():
                                  x=Sig,
                                  axis=0,
                                  padtype='constant',
+                                 method='gust'
                                 )
         return sigout
 
