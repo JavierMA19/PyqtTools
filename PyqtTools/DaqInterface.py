@@ -94,7 +94,11 @@ class ReadAnalog(Daq.Task):
 
         if not self.ContSamps:
             self.data = np.vstack((self.data, data))
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
         if self.EveryNEvent:
             print('Call')
             self.EveryNEvent(data)
