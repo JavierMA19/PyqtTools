@@ -8,7 +8,7 @@ Created on Thu Apr 23 10:30:42 2019
 
 from setuptools import setup, find_packages
 
-_version = '0.0.4'
+_version = '0.0.5'
 
 long_description = """
                    Tools for acquire continuously                 
