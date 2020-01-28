@@ -125,12 +125,19 @@ class Filter():
                                     )
 
     def Apply(self, Sig):
-        sigout, self.zi = signal.lfilter(b=self.b,
-                                         a=self.a,
-                                         x=Sig,
-                                         axis=0,
-                                         zi=self.zi
-                                         )
+#        sigout, self.zi = signal.lfilter(b=self.b,
+#                                         a=self.a,
+#                                         x=Sig,
+#                                         axis=0,
+#                                         zi=self.zi
+#                                         )
+        #probar con filtfilt
+        sigout = signal.filtfilt(b=self.b,
+                                 a=self.a,
+                                 x=Sig,
+                                 axis=0,
+                                 padtype='constant',
+                                )
         return sigout
 
 
