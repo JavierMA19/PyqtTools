@@ -125,20 +125,20 @@ class Filter():
                                     )
 
     def Apply(self, Sig):
-#        sigout, self.zi = signal.lfilter(b=self.b,
-#                                         a=self.a,
-#                                         x=Sig,
-#                                         axis=0,
-#                                         zi=self.zi
-#                                         )
+        sigout, self.zi = signal.lfilter(b=self.b,
+                                        a=self.a,
+                                        x=Sig,
+                                        axis=0,
+                                        zi=self.zi
+                                        )
         #probar con filtfilt
-        sigout = signal.filtfilt(b=self.b,
-                                 a=self.a,
-                                 x=Sig,
-                                 axis=0,
-                                 padtype='constant',
-                                 method='gust'
-                                )
+        # sigout = signal.filtfilt(b=self.b,
+        #                          a=self.a,
+        #                          x=Sig,
+        #                          axis=0,
+        #                          padtype='constant',
+        #                          # method='gust'
+        #                         )
         return sigout
 
 
@@ -162,6 +162,9 @@ class Demod():
 
         self.FiltR = Filter(Fs, self.FsOut/2, 'lp', Order)
         self.FiltI = Filter(Fs, self.FsOut/2, 'lp', Order)
+        
+        # self.FiltR2 = Filter(Fs, self.FsOut/2, 'lp', Order)
+        # self.FiltI2 = Filter(Fs, self.FsOut/2, 'lp', Order)
 
         self.vcoi = Signal
 
@@ -171,6 +174,9 @@ class Demod():
 
         FilterRPart = self.FiltR.Apply(rdem)
         FilterIPart = self.FiltI.Apply(idem)
+        
+        # FilterRPart = self.FiltR2.Apply(FilterRPart)
+        # FilterIPart = self.FiltI2.Apply(FilterIPart)
 
         sObject = slice(None, None, self.DownFact)
 
