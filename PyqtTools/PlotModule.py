@@ -219,31 +219,43 @@ class Plotter(Qt.QThread):
 
         self.Winds = []
         for win, chs in ChannelConf.items():
+            # print('chs---------->', chs)
             wind = PgPlotWindow()
             self.Winds.append(wind)
             xlink = None
-            for ch in chs:
-                wind.pgLayout.nextRow()
-                p = wind.pgLayout.addPlot()
-                p.hideAxis('bottom')
-                p.setLabel('left',
-                           ch['name'],
-                           units='A',
-                           **labelStyle)
-                p.setDownsampling(auto=True,
-                                  mode='subsample',
+            # for ch in chs:
+            #     print('ch----------->', ch)
+            wind.pgLayout.nextRow()
+            p = wind.pgLayout.addPlot()
+            p.hideAxis('bottom')
+            if chs[0]['name'].endswith('DC'):
+                labName = 'DC Channels'
+            else:
+                labName = 'AC Channels'
+            p.setLabel('left',
+                       labName,
+                       # ch['name'],
+                       units='A',
+                       **labelStyle)
+
+            p.setDownsampling(auto=True,
+                              mode='subsample',
 #                                  mode='peak',
-                                  )
-                p.setClipToView(True)
+                              )
+            p.setClipToView(True)
+            # c = p.plot(pen=pg.mkPen(ch['color'],
+            for ch in chs:
+
                 c = p.plot(pen=pg.mkPen(ch['color'],
-                                        width=ch['width']))
+                                    width=0.5))            
+                                    # width=ch['width']))
 #                c = p.plot()
                 self.Plots[ch['Input']] = p
                 self.Curves[ch['Input']] = c
 
-                if xlink is not None:
-                    p.setXLink(xlink)
-                xlink = p
+            if xlink is not None:
+                p.setXLink(xlink)
+            xlink = p
             p.showAxis('bottom')
             if self.ShowTime:
                 p.setLabel('bottom', 'Time', units='s', **labelStyle)
@@ -283,6 +295,7 @@ class Plotter(Qt.QThread):
         for wind in self.Winds:
             wind.close()
         self.terminate()
+
 
 ##############################################################################
 
