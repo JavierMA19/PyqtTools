@@ -219,31 +219,42 @@ class Plotter(Qt.QThread):
 
         self.Winds = []
         for win, chs in ChannelConf.items():
+            # print('chs---------->', chs)
             wind = PgPlotWindow()
             self.Winds.append(wind)
             xlink = None
-            for ch in chs:
-                wind.pgLayout.nextRow()
-                p = wind.pgLayout.addPlot()
-                p.hideAxis('bottom')
-                p.setLabel('left',
-                           ch['name'],
-                           units='A',
-                           **labelStyle)
-                p.setDownsampling(auto=True,
-                                  mode='subsample',
+            # for ch in chs:
+            wind.pgLayout.nextRow()
+            p = wind.pgLayout.addPlot()
+            p.hideAxis('bottom')
+            if chs[0]['name'].endswith('DC'):
+                labName = 'DC Channels'
+            else:
+                labName = 'AC Channels'
+            p.setLabel('left',
+                       labName,
+                       # ch['name'],
+                       units='A',
+                       **labelStyle)
+
+            p.setDownsampling(auto=True,
+                              mode='subsample',
 #                                  mode='peak',
-                                  )
-                p.setClipToView(True)
+                              )
+            p.setClipToView(True)
+            # c = p.plot(pen=pg.mkPen(ch['color'],
+            for ch in chs:
+
                 c = p.plot(pen=pg.mkPen(ch['color'],
-                                        width=ch['width']))
+                                        width=0.5))
+                                    # width=ch['width']))
 #                c = p.plot()
                 self.Plots[ch['Input']] = p
                 self.Curves[ch['Input']] = c
 
-                if xlink is not None:
-                    p.setXLink(xlink)
-                xlink = p
+            if xlink is not None:
+                p.setXLink(xlink)
+            xlink = p
             p.showAxis('bottom')
             if self.ShowTime:
                 p.setLabel('bottom', 'Time', units='s', **labelStyle)
@@ -264,10 +275,14 @@ class Plotter(Qt.QThread):
                 if self.ShowTime:
                     t = self.Buffer.GetTimes(self.ViewInd)
                 self.Buffer.Reset()
+                j = 0
                 for i in range(self.nChannels):
+                    j += 1e-6
                     if self.ShowTime:
-                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
+                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i]+float(j))
+                        # self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
                     else:
+                        # self.Curves[i].setData(self.Buffer[-self.ViewInd:, i]+int(j))
                         self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
 #                    self.Curves[i].setData(NewData[:, i])
 #                self.Plots[i].setXRange(self.BufferSize/10,
@@ -284,8 +299,8 @@ class Plotter(Qt.QThread):
             wind.close()
         self.terminate()
 
-##############################################################################
 
+##############################################################################
 PSDPars = ({'name': 'Fs',
             'readonly': True,
             'type': 'float',
