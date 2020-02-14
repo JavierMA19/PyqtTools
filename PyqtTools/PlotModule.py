@@ -67,7 +67,7 @@ PlotterPars = ({'name': 'Fs',
                 'suffix': 's'},
                {'name': 'Windows',
                 'type': 'int',
-                'value': 1},
+                'value': 2},
                {'name': 'Channels',
                 'type': 'group',
                 'children': []},)
@@ -224,7 +224,6 @@ class Plotter(Qt.QThread):
             self.Winds.append(wind)
             xlink = None
             # for ch in chs:
-            #     print('ch----------->', ch)
             wind.pgLayout.nextRow()
             p = wind.pgLayout.addPlot()
             p.hideAxis('bottom')
@@ -247,7 +246,7 @@ class Plotter(Qt.QThread):
             for ch in chs:
 
                 c = p.plot(pen=pg.mkPen(ch['color'],
-                                    width=0.5))            
+                                        width=0.5))
                                     # width=ch['width']))
 #                c = p.plot()
                 self.Plots[ch['Input']] = p
@@ -276,10 +275,14 @@ class Plotter(Qt.QThread):
                 if self.ShowTime:
                     t = self.Buffer.GetTimes(self.ViewInd)
                 self.Buffer.Reset()
+                j = 0
                 for i in range(self.nChannels):
+                    j += 1e-6
                     if self.ShowTime:
-                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
+                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i]+float(j))
+                        # self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
                     else:
+                        # self.Curves[i].setData(self.Buffer[-self.ViewInd:, i]+int(j))
                         self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
 #                    self.Curves[i].setData(NewData[:, i])
 #                self.Plots[i].setXRange(self.BufferSize/10,
@@ -298,7 +301,6 @@ class Plotter(Qt.QThread):
 
 
 ##############################################################################
-
 PSDPars = ({'name': 'Fs',
             'readonly': True,
             'type': 'float',
