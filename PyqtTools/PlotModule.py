@@ -27,11 +27,11 @@ ChannelPars = {'name': 'Ch01',
                              'value': 0.5},
                             {'name': 'Window',
                              'type': 'int',
-                             'value': 1,},
+                             'value': 1, },
                             {'name': 'Input',
                              'type': 'int',
                              'readonly': True,
-                             'value': 1,}]
+                             'value': 1, }]
                }
 
 PlotterPars = ({'name': 'Fs',
@@ -67,7 +67,13 @@ PlotterPars = ({'name': 'Fs',
                 'suffix': 's'},
                {'name': 'Windows',
                 'type': 'int',
-                'value': 1},
+                'value': 2},
+               {'name': 'OffsetPlot',
+                'type': 'float',
+                'value': 1e-6,
+                'step': 1e-6,
+                'siPrefix': True,
+                'suffix': 'A'},
                {'name': 'Channels',
                 'type': 'group',
                 'children': []},)
@@ -110,8 +116,13 @@ class PlotterParameters(pTypes.GroupParameter):
     def GetParams(self):
         PlotterKwargs = {}
         for p in self.children():
+            print(p.name(), p.value(), 'Name, Value')
             if p.name() in ('Channels', 'Windows', 'PlotEnable'):
                 continue
+            # if p.name() == 'OffsetPlot':
+            #     print('ofsetplot')
+            #     self.OffsetPlot = p.value()
+            #     self.param('OffsetPlot').setValue(self.OffsetPlot)
             PlotterKwargs[p.name()] = p.value()
 
         ChannelConf = {}
@@ -199,7 +210,7 @@ labelStyle = {'color': '#FFF',
 
 
 class Plotter(Qt.QThread):
-    def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime,
+    def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime, OffsetPlot,
                  ChannelConf, ShowTime=True):
         super(Plotter, self).__init__()
 
@@ -214,7 +225,7 @@ class Plotter(Qt.QThread):
         self.Buffer = Buffer2D(Fs, nChannels, ViewBuffer)
         self.SetRefreshTime(RefreshTime)
         self.SetViewTime(ViewTime)
-
+        self.OffsetPlot = float(OffsetPlot)
 #        print(self.RefreshInd, self.ViewInd, self.Buffer.shape)
 
         self.Winds = []
@@ -277,9 +288,9 @@ class Plotter(Qt.QThread):
                 self.Buffer.Reset()
                 j = 0
                 for i in range(self.nChannels):
-                    j += 1e-6
+                    j += self.OffsetPlot
                     if self.ShowTime:
-                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i]+float(j))
+                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(j))
                         # self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
                     else:
                         # self.Curves[i].setData(self.Buffer[-self.ViewInd:, i]+int(j))
@@ -301,6 +312,7 @@ class Plotter(Qt.QThread):
 
 
 ##############################################################################
+
 PSDPars = ({'name': 'Fs',
             'readonly': True,
             'type': 'float',
