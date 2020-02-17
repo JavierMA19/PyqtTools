@@ -68,7 +68,13 @@ PlotterPars = ({'name': 'Fs',
                {'name': 'Windows',
                 'type': 'int',
                 'value': 2},
-               {'name': 'OffsetPlot',
+               {'name': 'OffsetPlotDC',
+                'type': 'float',
+                'value': 1e-6,
+                'step': 1e-6,
+                'siPrefix': True,
+                'suffix': 'A'},
+               {'name': 'OffsetPlotAC',
                 'type': 'float',
                 'value': 1e-6,
                 'step': 1e-6,
@@ -287,17 +293,20 @@ class Plotter(Qt.QThread):
                     t = self.Buffer.GetTimes(self.ViewInd)
                 self.Buffer.Reset()
                 j = 0
+                k = 0
                 for i in range(self.nChannels):
-                    j += self.OffsetPlot
-                    if self.ShowTime:
-                        self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(j))
-                        # self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i])
+                    j += self.OffsetPlotDC
+                    k += self.OffsetPlotAC
+                    if i < (self.nChannels/2):
+                        if self.ShowTime:
+                            self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(j))
+                        else:
+                            self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
                     else:
-                        # self.Curves[i].setData(self.Buffer[-self.ViewInd:, i]+int(j))
-                        self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
-#                    self.Curves[i].setData(NewData[:, i])
-#                self.Plots[i].setXRange(self.BufferSize/10,
-#                                        self.BufferSize)
+                        if self.ShowTime:
+                            self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(k))
+                        else:
+                            self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
             else:
 #                pg.QtGui.QApplication.processEvents()
                 Qt.QThread.msleep(10)
