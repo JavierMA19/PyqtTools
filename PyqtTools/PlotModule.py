@@ -366,7 +366,7 @@ class PSDParameters(pTypes.GroupParameter):
     def on_nFFTChange(self):
         Fs = self.param('Fs').value()
         nFFT = self.param('nFFT').value()
-        FMin = 2**nFFT/Fs
+        FMin = Fs/2**nFFT
         self.param('Fmin').setValue(FMin, blockSignal=self.on_FminChange)
         self.on_nAvgChange()
 
