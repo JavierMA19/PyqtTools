@@ -98,7 +98,7 @@ class SweepsConfig(pTypes.GroupParameter):
                                        self.VgParams.param('Vfinal').value(),
                                        self.VgParams.param('NSweeps').value())
         #se convierte el valor RMS a valor Pico a Pico
-        self.VdSweepVals = np.sqrt(2)*np.linspace(self.VdParams.param('Vinit').value(),
+        self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
                                        self.VdParams.param('Vfinal').value(),
                                        self.VdParams.param('NSweeps').value())
 
