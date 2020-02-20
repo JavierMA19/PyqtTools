@@ -8,7 +8,7 @@ from PyQt5 import Qt
 import numpy as np
 from scipy.stats import linregress as lnr
 
-import Pyxi.CalcPSD as PSD
+import PyqtTools.CalcPSD as PSD
 import PyqtTools.SaveDictsModule as SaveDicts
 
 

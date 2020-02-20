@@ -79,13 +79,13 @@ class SweepsConfig(pTypes.GroupParameter):
         self.on_Sweeps_Changed()
 
     def on_Sweeps_Changed(self):
-        self.VgSweepVals = np.arange(self.VgParams.param('Vinit').value(),
-                                     self.VgParams.param('Vfinal').value(),
-                                     self.VgParams.param('Vstep').value())
+        self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
+                                       self.VgParams.param('Vfinal').value(),
+                                       self.VgParams.param('Vstep').value())
 
-        self.VdSweepVals = np.arange(self.VdParams.param('Vinit').value(),
-                                     self.VdParams.param('Vfinal').value(),
-                                     self.VdParams.param('Vstep').value())
+        self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
+                                       self.VdParams.param('Vfinal').value(),
+                                       self.VdParams.param('Vstep').value())
 
     def GetSweepsParams(self):
         SwConfig = {}
