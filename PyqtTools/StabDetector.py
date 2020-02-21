@@ -56,7 +56,7 @@ class StbDetThread(Qt.QThread):
         self.Timer.moveToThread(self)
 #        print('nchannels', nChannels)
         self.threadCalcPSD = PSD.CalcPSD(nChannels=nChannels,
-                                         **PlotterDemodKwargs)
+                                          **PlotterDemodKwargs)
         self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
 
         self.SaveDCAC = SaveDicts.SaveDicts(SwVdsVals=VdVals,
@@ -129,8 +129,8 @@ class StbDetThread(Qt.QThread):
 
     def on_PSDDone(self):
 #        print('PSD DONE RECIBED')
-        self.freqs = self.threadCalcPSD.ff
-        self.PSDdata = self.threadCalcPSD.psd
+        # self.freqs = self.threadCalcPSD.ff
+        # self.PSDdata = self.threadCalcPSD.psd
         # se desactiva el thread para calcular PSD
         self.threadCalcPSD.stop()
         # Se guardan los valores DC
@@ -138,11 +138,11 @@ class StbDetThread(Qt.QThread):
                                  SwVgsInd=self.VgIndex,
                                  SwVdsInd=self.VdIndex)
         # Se guarda en AC dicts
-        self.SaveDCAC.SaveACDict(psd=self.PSDdata,
-                                 ff=self.freqs,
-                                 SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex
-                                 )
+        # self.SaveDCAC.SaveACDict(psd=self.PSDdata,
+        #                           ff=self.freqs,
+        #                           SwVgsInd=self.VgIndex,
+        #                           SwVdsInd=self.VdIndex
+        #                           )
 
     def on_NextVgs(self):
         # Y se emite la señal para el siguiente sweep de VG

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QFileDialog
 from pyqtgraph.parametertree import Parameter
 
 import PyGFETdb.DataStructures as PyData
-
+import deepdish as dd
 import h5py
 import pickle
 
@@ -92,17 +92,18 @@ class SaveDicts(QObject):
                                             ChNames=self.ChNamesList,
                                             Gate=Gate)
         # AC dictionaries
+       self.DevACVals = None
         # if checkPSD:
-       self.PSDnFFT = 2**nFFT
-       self.PSDFs = FsDemod
+       # self.PSDnFFT = 2**nFFT
+       # self.PSDFs = FsDemod
         
-       Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
-       nFgm = np.array([])
-       self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
-                                             nVgs=SwVgsVals,
-                                             nFgm=nFgm,
-                                             nFpsd=Fpsd,
-                                             ChNames=self.ChNamesList)
+       # Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
+       # nFgm = np.array([])
+       # self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
+       #                                       nVgs=SwVgsVals,
+       #                                       nFgm=nFgm,
+       #                                       nFpsd=Fpsd,
+       #                                       ChNames=self.ChNamesList)
         
         
     def SaveDCDict(self, Ids, SwVgsInd, SwVdsInd):
@@ -111,7 +112,8 @@ class SaveDicts(QObject):
                                       SwVdsInd] = Ids[inds]
   
        print('DCSaved')
-        
+       self.PSDSaved.emit()
+
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd):
        for chn, inds in self.ChannelIndex.items():
            self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
@@ -120,9 +122,15 @@ class SaveDicts(QObject):
        print('ACSaved')
        self.PSDSaved.emit()
 
-    def SaveDicts(self, Name, Dcdict, Acdict):
-       if self.Name:
-           Filename = Name + "{}-Cy{}.h5".format('', )
+    def SaveDicts(self, Dcdict, Acdict, Folder, Name):
+                # self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
+                #                                      Oblea,
+                #                                      Disp,
+                #                                      Name,
+                #                                      Cycle)
+
+       if Name:
+           Filename = Folder + '/' + Name + "{}-Cy{}.h5".format('', 0)
            if Acdict:
                dd.io.save(Filename, (Dcdict, Acdict), ('zlib', 1))
            else:
