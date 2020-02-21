@@ -216,8 +216,8 @@ labelStyle = {'color': '#FFF',
 
 
 class Plotter(Qt.QThread):
-    def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime, OffsetPlot,
-                 ChannelConf, ShowTime=True):
+    def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime, 
+                 OffsetPlotDC, OffsetPlotAC, ChannelConf, ShowTime=True):
         super(Plotter, self).__init__()
 
         self.Winds = []
@@ -231,7 +231,8 @@ class Plotter(Qt.QThread):
         self.Buffer = Buffer2D(Fs, nChannels, ViewBuffer)
         self.SetRefreshTime(RefreshTime)
         self.SetViewTime(ViewTime)
-        self.OffsetPlot = float(OffsetPlot)
+        self.OffsetPlotDC = float(OffsetPlotDC)
+        self.OffsetPlotAC = float(OffsetPlotAC)
 #        print(self.RefreshInd, self.ViewInd, self.Buffer.shape)
 
         self.Winds = []

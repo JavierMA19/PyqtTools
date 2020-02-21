@@ -83,20 +83,20 @@ class ReadAnalog(Daq.Task):
         self.ContSamps = False
 
     def EveryNCallback(self):
-        print('Every')
+        # print('Every')
         read = c_int32()
         data = np.zeros((self.EverySamps, len(self.Channels)))
         self.ReadAnalogF64(self.EverySamps, 10.0,
                            Daq.DAQmx_Val_GroupByScanNumber,
                            data, data.size, byref(read), None)
 
-        print('EveryN')
+        # print('EveryN')
 
         if not self.ContSamps:
             self.data = np.vstack((self.data, data))
 
         if self.EveryNEvent:
-            print('Call')
+            # print('Call')
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):

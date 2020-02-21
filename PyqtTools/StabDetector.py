@@ -58,6 +58,7 @@ class StbDetThread(Qt.QThread):
         self.threadCalcPSD = PSD.CalcPSD(nChannels=nChannels,
                                          **PlotterDemodKwargs)
         self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
+
         self.SaveDCAC = SaveDicts.SaveDicts(SwVdsVals=VdVals,
                                             SwVgsVals=VgVals,
                                             Channels=ChnName,

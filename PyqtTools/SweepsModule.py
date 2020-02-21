@@ -24,29 +24,29 @@ SweepsParams = {'name': 'SweepsConfig',
                                             'suffix': 'V'},
                                            {'name': 'Vfinal',
                                             'type': 'float',
-                                            'value': -0.4,
+                                            'value': 0.4,
                                             'siPrefix': True,
                                             'suffix': 'V'},
                                            {'name': 'Vstep',
                                             'type': 'float',
-                                            'value': -0.01,
+                                            'value': 5,
                                             'siPrefix': True,
                                             'suffix': 'V'},)},
                              {'name': 'VdSweep',
                               'type': 'group',
                               'children': ({'name': 'Vinit',
                                             'type': 'float',
-                                            'value': 0.02,
+                                            'value': 0.05,
                                             'siPrefix': True,
                                             'suffix': 'V'},
                                            {'name': 'Vfinal',
                                             'type': 'float',
-                                            'value': 0.2,
+                                            'value': 0.05,
                                             'siPrefix': True,
                                             'suffix': 'V'},
                                            {'name': 'Vstep',
                                             'type': 'float',
-                                            'value': 0.01,
+                                            'value': 1,
                                             'siPrefix': True,
                                             'suffix': 'V'}, )},
                              {'name': 'SinglePoint',
@@ -82,7 +82,6 @@ class SweepsConfig(pTypes.GroupParameter):
         self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
                                        self.VgParams.param('Vfinal').value(),
                                        self.VgParams.param('Vstep').value())
-
         self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
                                        self.VdParams.param('Vfinal').value(),
                                        self.VdParams.param('Vstep').value())
@@ -93,10 +92,11 @@ class SweepsConfig(pTypes.GroupParameter):
 
             if Config.name() == 'VgSweep':
                 SwConfig[Config.name()] = self.VgSweepVals
-                continue
-            if Config.name() == 'VdSweep':
+                # continue
+            elif Config.name() == 'VdSweep':
                 SwConfig[Config.name()] = self.VdSweepVals
-                continue
-            SwConfig[Config.name()] = Config.value()
+                # continue
+            else:
+                SwConfig[Config.name()] = Config.value()
 
         return SwConfig
