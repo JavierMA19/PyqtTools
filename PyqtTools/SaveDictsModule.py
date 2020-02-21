@@ -82,9 +82,9 @@ class SaveDicts(QObject):
        super(SaveDicts, self).__init__()
        self.ChNamesList = sorted(Channels)
        self.ChannelIndex = {}
-       index = 0
-       for ch in sorted(Channels):
-           self.ChannelIndex[ch] = (index)
+       # index = 0
+       for ic, ch in enumerate(sorted(Channels)):
+           self.ChannelIndex[ch] = ic
 
         # DC dictionaries
        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,

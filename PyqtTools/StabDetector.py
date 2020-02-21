@@ -46,6 +46,8 @@ class StbDetThread(Qt.QThread):
         self.Stable = False
         self.Datos = None
 
+        self.ChannelsNames = ChnName ###☻
+
         self.MaxSlope = MaxSlope
         self.TimeOut = TimeOut
 
@@ -134,6 +136,9 @@ class StbDetThread(Qt.QThread):
         # se desactiva el thread para calcular PSD
         self.threadCalcPSD.stop()
         # Se guardan los valores DC
+        # for chn, inds in self.ChannelsNames.items():
+        #     print(chn, inds)
+            
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  SwVgsInd=self.VgIndex,
                                  SwVdsInd=self.VdIndex)
