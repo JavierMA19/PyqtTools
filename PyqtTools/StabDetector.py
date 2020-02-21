@@ -124,9 +124,9 @@ class StbDetThread(Qt.QThread):
         for ind in range(self.Datos.shape[1]):
             Data = np.abs(self.Datos[:, ind])
             x = np.arange(Data.size)
-            self.ptrend = np.polyfit(x, Data, 1)
-
-            self.DCIds[ind] = (self.ptrend[-1])/np.sqrt(2)  # Se toma el ultimo valor
+            # self.ptrend = np.polyfit(x, Data, 1)
+            self.DCIds[ind] = Data[-1]
+            # self.DCIds[ind] = (self.ptrend[-1])/np.sqrt(2)  # Se toma el ultimo valor
         # print('DCIDS', DCIds)    
 
     def on_PSDDone(self):
