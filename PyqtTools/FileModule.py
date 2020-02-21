@@ -12,6 +12,7 @@ import h5py
 from PyQt5 import Qt
 import os
 import pickle
+import numpy as np
 
 
 SaveFilePars = [{'name': 'Save File',
@@ -52,11 +53,13 @@ class SaveFileParameters(pTypes.GroupParameter):
 
 
 class FileBuffer():
-    def __init__(self, FileName, MaxSize, nChannels):
+    def __init__(self, FileName, MaxSize, nChannels, Fs=None, ChnNames=None):
         self.FileBase = FileName.split('.h5')[0]
         self.PartCount = 0
         self.nChannels = nChannels
         self.MaxSize = MaxSize
+        self.Fs = Fs
+        self.ChnNames = ChnNames
         self._initFile()
 
     def _initFile(self):
@@ -67,6 +70,16 @@ class FileBuffer():
         self.FileName = FileName
         self.PartCount += 1
         self.h5File = h5py.File(FileName, 'w')
+        if self.Fs is not None:
+            self.FsDset = self.h5File.create_dataset('Fs', 
+                                                     shape=np.array([self.Fs]).shape)
+            self.FsDset = self.Fs
+            
+        if self.ChnNames is not None:
+            self.ChnNamesDset = self.h5File.create_dataset('ChnNames', 
+                                                       shape=self.ChnNames.shape)
+            self.ChnNamesDset = self.ChnNames
+        
         self.Dset = self.h5File.create_dataset('data',
                                                shape=(0, self.nChannels),
                                                maxshape=(None, self.nChannels),
@@ -86,12 +99,15 @@ class FileBuffer():
 
 
 class DataSavingThread(Qt.QThread):
-    def __init__(self, FileName, nChannels, MaxSize=None, dtype='float'):
+    def __init__(self, FileName, nChannels, Fs, ChnNames, 
+                 MaxSize=None, dtype='float'):
         super(DataSavingThread, self).__init__()
         self.NewData = None
         self.FileBuff = FileBuffer(FileName=FileName,
                                    nChannels=nChannels,
-                                   MaxSize=MaxSize)
+                                   MaxSize=MaxSize,
+                                   Fs = Fs,
+                                   ChnNames = ChnNames)
 
     def run(self, *args, **kwargs):
         while True:
