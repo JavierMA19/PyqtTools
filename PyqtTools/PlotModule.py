@@ -113,7 +113,7 @@ class PlotterParameters(pTypes.GroupParameter):
             Ch['name'] = chn
             Ch['children'][0]['value'] = chn
             Ch['children'][1]['value'] = pen.color()
-            Ch['children'][3]['value'] = int(ind/chPWind)
+            Ch['children'][3]['value'] = int(ind//chPWind)
             Ch['children'][4]['value'] = ind
             Chs.append(Ch)
 
@@ -233,9 +233,12 @@ class Plotter(Qt.QThread):
         self.SetViewTime(ViewTime)
         self.OffsetPlotDC = float(OffsetPlotDC)
         self.OffsetPlotAC = float(OffsetPlotAC)
-#        print(self.RefreshInd, self.ViewInd, self.Buffer.shape)
+        self.ChannelConf = ChannelConf
+        # self.ACPlot = None
+        # self.DCPlot = None
 
         self.Winds = []
+
         for win, chs in ChannelConf.items():
             # print('chs---------->', chs)
             wind = PgPlotWindow()
@@ -247,8 +250,10 @@ class Plotter(Qt.QThread):
             p.hideAxis('bottom')
             if chs[0]['name'].endswith('DC'):
                 labName = 'DC Channels'
+                # self.DCPlot = True
             else:
                 labName = 'AC Channels'
+                # self.ACPlot = True
             p.setLabel('left',
                        labName,
                        # ch['name'],
@@ -295,19 +300,20 @@ class Plotter(Qt.QThread):
                 self.Buffer.Reset()
                 j = 0
                 k = 0
-                for i in range(self.nChannels):
-                    j += self.OffsetPlotDC
-                    k += self.OffsetPlotAC
-                    if i < (self.nChannels/2):
-                        if self.ShowTime:
-                            self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(j))
+                for win, chs in self.ChannelConf.items():
+                    for ch in chs:
+                        if ch['name'].endswith('DC'):
+                            j += self.OffsetPlotDC
+                            if self.ShowTime:
+                                self.Curves[ch['Input']].setData(t, self.Buffer[-self.ViewInd:, ch['Input']] + float(j))
+                            else:
+                                self.Curves[ch['Input']].setData(self.Buffer[-self.ViewInd:, ch['Input']])
                         else:
-                            self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
-                    else:
-                        if self.ShowTime:
-                            self.Curves[i].setData(t, self.Buffer[-self.ViewInd:, i] + float(k))
-                        else:
-                            self.Curves[i].setData(self.Buffer[-self.ViewInd:, i])
+                            k += self.OffsetPlotAC
+                            if self.ShowTime:
+                                self.Curves[ch['Input']].setData(t, self.Buffer[-self.ViewInd:, ch['Input']] + float(k))
+                            else:
+                                self.Curves[ch['Input']].setData(self.Buffer[-self.ViewInd:, ch['Input']])
             else:
 #                pg.QtGui.QApplication.processEvents()
                 Qt.QThread.msleep(10)
