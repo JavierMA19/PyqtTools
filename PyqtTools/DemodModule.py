@@ -114,7 +114,7 @@ class DemodParameters(pTypes.GroupParameter):
     
     def GetChannelsNames(self, Rows, Fcs):
         '''Function that returns an array with the names of demodulation
-           channels
+           channels in dtype S10
             ['Ch01Col1',
              'Ch02Col1',
              'Ch03Col1',
@@ -125,11 +125,12 @@ class DemodParameters(pTypes.GroupParameter):
              'Ch08Col1',
             ]
         '''
-        DemChnNames = np.array([])
+        DemChnNames = []
         for r in Rows:
             for col, f in Fcs.items():
-                DemChnNames = np.append(DemChnNames, r+col)
-        return DemChnNames
+                DemChnNames.append(r+col)
+        DemChns = np.array(DemChnNames, dtype='S10')
+        return DemChns
 
 
 class Filter():

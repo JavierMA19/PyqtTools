@@ -72,14 +72,11 @@ class FileBuffer():
         self.h5File = h5py.File(FileName, 'w')
         if self.Fs is not None:
             self.FsDset = self.h5File.create_dataset('Fs', 
-                                                     shape=np.array([self.Fs]).shape)
-            self.FsDset[0] = self.Fs
-            
+                                                     data=self.Fs)
         if self.ChnNames is not None:
             self.ChnNamesDset = self.h5File.create_dataset('ChnNames', 
-                                                           shape=self.ChnNames.shape)
-            for ind, chn in self.ChnNames:
-                self.ChnNamesDset[ind] = chn
+                                                           dtype='S10',
+                                                           data=self.ChnNames)
         
         self.Dset = self.h5File.create_dataset('data',
                                                shape=(0, self.nChannels),
@@ -107,8 +104,8 @@ class DataSavingThread(Qt.QThread):
         self.FileBuff = FileBuffer(FileName=FileName,
                                    nChannels=nChannels,
                                    MaxSize=MaxSize,
-                                   Fs = Fs,
-                                   ChnNames = ChnNames)
+                                   Fs=Fs,
+                                   ChnNames=ChnNames)
 
     def run(self, *args, **kwargs):
         while True:
