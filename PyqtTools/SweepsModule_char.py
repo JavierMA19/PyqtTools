@@ -4,9 +4,8 @@ Created on Wed Dec 18 09:25:47 2019
 
 @author: Lucia
 """
-from PyQt5 import Qt
+
 import pyqtgraph.parametertree.parameterTypes as pTypes
-import pyqtgraph.parametertree.Parameter as pParams
 
 import numpy as np
 
@@ -91,9 +90,11 @@ class SweepsConfig(pTypes.GroupParameter):
 
         self.VgParams = self.SwConfig.param('VgSweep')
         self.VdParams = self.SwConfig.param('VdSweep')
+        # self.DevCond = self.SwConfig.param('MaxSlope')
 
         self.VgParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.VdParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
+        # self.DevCond.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.on_Sweeps_Changed()
 
     def on_Sweeps_Changed(self):
@@ -115,6 +116,14 @@ class SweepsConfig(pTypes.GroupParameter):
         # self.DevCondition = self.DevCond.value()
 
     def GetSweepsParams(self):
+        '''Returns de parameters to do the sweeps
+           SwConfig={'Enable': True,
+                     'VgSweep': array([ 0. , -0.1, -0.2, -0.3]),
+                     'VdSweep': array([0.1]),
+                     'MaxSlope': 1e-9,
+                     'TimeOut': 10
+                     }
+        '''
         SwConfig = {}
         for Config in self.SwConfig.children():
 
