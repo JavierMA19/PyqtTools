@@ -119,7 +119,8 @@ class ReadAnalog(Daq.Task):
         self.UnregisterEveryNSamplesEvent()
 
         if self.DoneEvent:
-            self.DoneEvent(self.data)
+            # self.DoneEvent(self.data)
+            self.DoneEvent(self.data[1:, :])
 
         return 0  # The function should return an integer
 
