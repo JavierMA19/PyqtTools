@@ -67,7 +67,7 @@ PlotterPars = ({'name': 'Fs',
                 'suffix': 's'},
                {'name': 'Windows',
                 'type': 'int',
-                'value': 2},
+                'value': 1},
                {'name': 'Channels',
                 'type': 'group',
                 'children': []},)
