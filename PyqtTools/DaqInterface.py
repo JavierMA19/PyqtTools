@@ -43,6 +43,7 @@ class ReadAnalog(Daq.Task):
 
     EveryNEvent = None
     DoneEvent = None
+    ContSamps = None
 
     def __init__(self, InChans, Range=5.0, Diff=False):
         Daq.Task.__init__(self)
@@ -62,6 +63,20 @@ class ReadAnalog(Daq.Task):
                                          Daq.DAQmx_Val_Volts, None)
 
         self.AutoRegisterDoneEvent(0)
+
+    def ReadData(self, Fs=1000, nSamps=10000, EverySamps=1000):
+
+        self.Fs = Fs
+        self.EverySamps = EverySamps
+
+        self.data = np.ndarray([len(self.Channels), ])
+
+        self.CfgSampClkTiming("", Fs, Daq.DAQmx_Val_Rising,
+                              Daq.DAQmx_Val_FiniteSamps, nSamps)
+
+        self.AutoRegisterEveryNSamplesEvent(Daq.DAQmx_Val_Acquired_Into_Buffer,
+                                            self.EverySamps, 0)
+        self.StartTask()
 
     def ReadContData(self, Fs, EverySamps):
         self.Fs = Fs
