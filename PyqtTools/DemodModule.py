@@ -182,8 +182,8 @@ class Demod():
 
         self.FiltR = Filter(Fs, self.FsOut/2, 'lp', Order)
         self.FiltI = Filter(Fs, self.FsOut/2, 'lp', Order)
-        self.FiltH = Filter(Fs, 1e3, 'highpass', 4)
-        self.FiltL = Filter(Fs, 1e6, 'lowpass', 4)
+        self.FiltH = Filter(Fs, 2*5e3, 'highpass', 4)
+        # self.FiltL = Filter(Fs, 200e3, 'lp', 4)
         
         # self.FiltR2 = Filter(Fs, self.FsOut/2, 'lp', Order)
         # self.FiltI2 = Filter(Fs, self.FsOut/2, 'lp', Order)
@@ -191,8 +191,8 @@ class Demod():
         self.vcoi = Signal
 
     def Apply(self, SigInput):
-        SigInHigh = self.FiltH.Apply(SigInput)
-        SigIn = self.FiltH.Apply(SigInHigh)
+        SigIn = self.FiltH.Apply(SigInput)
+        # SigIn = self.FiltH.Apply(SigInHigh)
         rdem = np.real(self.vcoi*SigIn)
         idem = np.imag(self.vcoi*SigIn)
 
@@ -208,6 +208,7 @@ class Demod():
         RSidem = FilterIPart[sObject]
 
         complexDem = RSrdem + (RSidem*1j)
+        # complexDem = FilterRPart + (FilterIPart*1j)
 
         return complexDem
 
