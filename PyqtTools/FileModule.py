@@ -175,23 +175,33 @@ class SaveSateParameters(pTypes.GroupParameter):
 def GenArchivo(name, dic2Save):
     """
     Generate a file of type .dat that saves a dictionary
-    
-    name: the name the saved file will have
+
+    Parameters
+    ----------
+    :param: name: the name the saved file will have
         'name.dat'
-    dic2Save: the dictionary is wanted to be saved
-    No Outputs
+    :param: dic2Save: the dictionary is wanted to be saved
+
+    Returns
+    -------
+        None.
     """
     with open(name, "wb") as f:
         pickle.dump(dic2Save, f)
-            
+
 def ReadArchivo(name):
     """
     Generate a file of type .dat that saves a dictionary
-    
-    name: the name of the file to open. it is need:
+
+    Parameters
+    ----------
+    :param: name: the name of the file to open. it is need:
         ·All the directory path if it is on a diferent folder from the script.
         ·The extention of the file
-    pickle.load(): returns the read dictionary from file
+
+    Returns
+    -------
+    :return: pickle.load(): returns the read dictionary from file
     """
     with open(name, "rb") as f:
         return pickle.load(f ,encoding = 'latin1')
