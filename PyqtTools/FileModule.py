@@ -12,6 +12,7 @@ import h5py
 from PyQt5 import Qt
 import os
 import pickle
+import numpy as np
 
 
 SaveFilePars = [{'name': 'Save File',
@@ -52,11 +53,13 @@ class SaveFileParameters(pTypes.GroupParameter):
 
 
 class FileBuffer():
-    def __init__(self, FileName, MaxSize, nChannels):
+    def __init__(self, FileName, MaxSize, nChannels, Fs=None, ChnNames=None):
         self.FileBase = FileName.split('.h5')[0]
         self.PartCount = 0
         self.nChannels = nChannels
         self.MaxSize = MaxSize
+        self.Fs = Fs
+        self.ChnNames = ChnNames
         self._initFile()
 
     def _initFile(self):
@@ -67,6 +70,14 @@ class FileBuffer():
         self.FileName = FileName
         self.PartCount += 1
         self.h5File = h5py.File(FileName, 'w')
+        if self.Fs is not None:
+            self.FsDset = self.h5File.create_dataset('Fs', 
+                                                     data=self.Fs)
+        if self.ChnNames is not None:
+            self.ChnNamesDset = self.h5File.create_dataset('ChnNames', 
+                                                           dtype='S10',
+                                                           data=self.ChnNames)
+        
         self.Dset = self.h5File.create_dataset('data',
                                                shape=(0, self.nChannels),
                                                maxshape=(None, self.nChannels),
@@ -86,8 +97,8 @@ class FileBuffer():
 
 
 class DataSavingThread(Qt.QThread):
-    def __init__(self, FileName, nChannels, Fs=None, ChnNames=None,
-                 MaxSize=None):
+    def __init__(self, FileName, nChannels, Fs=None, ChnNames=None, 
+                 MaxSize=None, dtype='float'):
         super(DataSavingThread, self).__init__()
         self.NewData = None
         self.FileBuff = FileBuffer(FileName=FileName,
@@ -108,6 +119,10 @@ class DataSavingThread(Qt.QThread):
         if self.NewData is not None:
             print('Error Saving !!!!')
         self.NewData = NewData
+    
+    def stop (self):
+        self.FileBuff.h5File.close()
+        self.terminate()
 
 
 
@@ -155,4 +170,39 @@ class SaveSateParameters(pTypes.GroupParameter):
         if RecordFile:
             with open(RecordFile, 'wb') as file:
                 file.write(pickle.dumps(parent.saveState()))
+
+
+def GenArchivo(name, dic2Save):
+    """
+    Generate a file of type .dat that saves a dictionary
+
+    Parameters
+    ----------
+    :param: name: the name the saved file will have
+        'name.dat'
+    :param: dic2Save: the dictionary is wanted to be saved
+
+    Returns
+    -------
+        None.
+    """
+    with open(name, "wb") as f:
+        pickle.dump(dic2Save, f)
+
+def ReadArchivo(name):
+    """
+    Generate a file of type .dat that saves a dictionary
+
+    Parameters
+    ----------
+    :param: name: the name of the file to open. it is need:
+        ·All the directory path if it is on a diferent folder from the script.
+        ·The extention of the file
+
+    Returns
+    -------
+    :return: pickle.load(): returns the read dictionary from file
+    """
+    with open(name, "rb") as f:
+        return pickle.load(f ,encoding = 'latin1')
 
