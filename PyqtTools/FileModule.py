@@ -86,12 +86,15 @@ class FileBuffer():
 
 
 class DataSavingThread(Qt.QThread):
-    def __init__(self, FileName, nChannels, MaxSize=None):
+    def __init__(self, FileName, nChannels, Fs=None, ChnNames=None,
+                 MaxSize=None):
         super(DataSavingThread, self).__init__()
         self.NewData = None
         self.FileBuff = FileBuffer(FileName=FileName,
                                    nChannels=nChannels,
-                                   MaxSize=MaxSize)
+                                   MaxSize=MaxSize,
+                                   Fs=Fs,
+                                   ChnNames=ChnNames)
 
     def run(self, *args, **kwargs):
         while True:
