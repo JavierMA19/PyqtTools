@@ -13,6 +13,7 @@ from PyQt5 import Qt
 import os
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 SaveFilePars = [{'name': 'Save File',
@@ -95,6 +96,11 @@ class FileBuffer():
 #            print(stat.st_size, self.MaxSize)
             self._initFile()
 
+    def RefreshPlot(self):
+        plt.figure()
+        x, y = self.Dset.shape
+        Time = np.linspace(0, x/self.Fs, x)
+        plt.plot(Time, self.Dset)
 
 class DataSavingThread(Qt.QThread):
     def __init__(self, FileName, nChannels, Fs=None, ChnNames=None, 
