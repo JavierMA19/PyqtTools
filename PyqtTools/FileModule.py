@@ -17,17 +17,24 @@ import matplotlib.pyplot as plt
 
 
 SaveFilePars = [{'name': 'Save File',
-                 'type': 'action'},
+                 'type': 'action'
+                 },
                 {'name': 'File Path',
                  'type': 'str',
-                 'value': ''},
+                 'value': ''
+                 },
                 {'name': 'MaxSize',
                  'type': 'int',
                  'siPrefix': True,
                  'suffix': 'B',
                  'limits': (1e6, 1e12),
                  'step': 100e6,
-                 'value': 50e6}
+                 'value': 50e6
+                 },
+                {'name': 'Enabled',
+                 'type': 'bool',
+                 'value': False,
+                 },
                 ]
 
 
