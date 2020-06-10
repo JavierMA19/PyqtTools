@@ -150,10 +150,9 @@ class PlotterParameters(pTypes.GroupParameter):
                     off += incoff
 
         for p in self.param('Channels').children():
-            p.param('Offset').setValue(offsets[p['name']])
+            if p.param('Enable').value():
+                p.param('Offset').setValue(offsets[p['name']])
                 
-
-
     def on_EnableAll(self):
         for p in self.param('Channels').children():
             p.param('Enable').setValue(True)
@@ -325,6 +324,8 @@ class Plotter(Qt.QThread):
         self.SetRefreshTime(RefreshTime)
         self.SetViewTime(ViewTime)
 
+        p = None
+
         for win, axs in ChsDistribution.items():
             # print('chs---------->', chs)
             wind = PgPlotWindow()
@@ -360,9 +361,9 @@ class Plotter(Qt.QThread):
                                             width=width))
                     self.Plots[chn] = p
                     self.Curves[chn] = c
-
-            p.setClipToView(True)
-            p.showAxis('bottom')
+            if p is not None:
+                p.setClipToView(True)
+                p.showAxis('bottom')
 
     def SetViewTime(self, ViewTime):
         self.ViewTime = ViewTime
@@ -403,6 +404,7 @@ class Plotter(Qt.QThread):
 PSDPars = ({'name': 'Fs',
             'readonly': True,
             'type': 'float',
+            'value': 2,
             'siPrefix': True,
             'suffix': 'Hz'},
            {'name': 'PlotEnable',
