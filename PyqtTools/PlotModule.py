@@ -23,10 +23,12 @@ ChannelPars = {'name': 'Ch01',
                              'type': 'bool',
                              'value': False, },
                             {'name': 'Window',
+                             'limits': (0, 32),
                              'type': 'int',
                              'value': 0, },
                             {'name': 'Axis',
                              'type': 'int',
+                             'limits': (0, 32),
                              'value': 0, },
                             {'name': 'Offset',
                              'type': 'float',
@@ -36,7 +38,8 @@ ChannelPars = {'name': 'Ch01',
                              'value': "FFF"},
                             {'name': 'width',
                              'type': 'float',
-                             'value': 0.5},
+                             'value': 0.5,
+                             'limits': (0, 5), },
                             {'name': 'Input',
                              'type': 'int',
                              'readonly': True,
@@ -68,11 +71,13 @@ PlotterPars = ({'name': 'Fs',
                 'type': 'float',
                 'value': 30,
                 'step': 1,
+                'limits': (0.01, 1e3),
                 'siPrefix': True,
                 'suffix': 's'},
                {'name': 'ViewTime',
                 'type': 'float',
                 'value': 10,
+                'limits': (1e-3, 1e3),
                 'step': 1,
                 'siPrefix': True,
                 'suffix': 's'},
@@ -80,6 +85,7 @@ PlotterPars = ({'name': 'Fs',
                 'type': 'float',
                 'value': 4,
                 'step': 1,
+                'limits': (1, 1e3),
                 'siPrefix': True,
                 'suffix': 's'},
                {'name': 'Windows',
@@ -91,6 +97,11 @@ PlotterPars = ({'name': 'Fs',
                 'value': 0,
                 'siPrefix': True,
                 },
+               {'name': 'ShowSamples',
+                'title': 'Show Samples',
+                'type': 'bool',
+                'value': False,                
+                },               
                {'name': 'EnableAll',
                 'title': 'Enable all channels',
                 'type': 'action',
@@ -102,7 +113,7 @@ PlotterPars = ({'name': 'Fs',
                {'name': 'Channels',
                 'type': 'group',
                 'children': []},)
-
+               
 DiscarParamsPlt = ('Channels',
                    'Windows',
                    'PlotEnable',
@@ -115,6 +126,8 @@ DiscarParamsPlt = ('Channels',
 
 
 class PlotterParameters(pTypes.GroupParameter):
+    NewConf = Qt.pyqtSignal()
+
     def __init__(self, **kwargs):
         pTypes.GroupParameter.__init__(self, **kwargs)
 
@@ -125,12 +138,17 @@ class PlotterParameters(pTypes.GroupParameter):
         self.param('DisableAll').sigActivated.connect(self.on_DisableAll)
         self.param('ViewTime').sigValueChanged.connect(self.on_ViewTime)
         self.param('SelIndex').sigValueChanged.connect(self.on_SelIndex)
+        self.param('RefreshTime').sigValueChanged.connect(self.on_RefreshTime)
 
+    def on_RefreshTime(self):
+        self.NewConf.emit()
+        
     def on_ViewTime(self):
         vt = self.param('ViewTime').value()
         vb = self.param('ViewBuffer').value()
         if vt > vb:
             self.param('ViewTime').setValue(vb)
+        self.NewConf.emit()
 
     def on_SetOffset(self):
         Windows = {}
@@ -173,11 +191,9 @@ class PlotterParameters(pTypes.GroupParameter):
             p.param('Enable').setValue(False)
 
     def on_WindowsChange(self):
-        print('tyest')
         chs = self.param('Channels').children()
         chPWind = int(len(chs)/self.param('Windows').value())
-        for ch in chs:
-            ind = ch.child('Input').value()
+        for ind, ch in enumerate(chs):            
             ch.child('Window').setValue(int(ind/chPWind))
 
     def SetChannels(self, Channels):
@@ -352,7 +368,7 @@ labelStyle = {'color': '#FFF',
 class Plotter(Qt.QThread):
 
     def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime, 
-                 ChannelConf, ChsDistribution, ShowTime=True):
+                 ChannelConf, ChsDistribution, ShowSamples=False):
         super(Plotter, self).__init__()
 
         self.Winds = []
@@ -361,8 +377,8 @@ class Plotter(Qt.QThread):
         self.Curves = {}
         self.ChannelConf = {}
         self.ChsDistribution = ChsDistribution
-        
-        self.ShowTime = ShowTime
+
+        self.ShowSamples = ShowSamples
         self.Fs = Fs
         self.Ts = 1/float(self.Fs)
         self.Buffer = Buffer2D(Fs, nChannels, ViewBuffer)
@@ -394,7 +410,7 @@ class Plotter(Qt.QThread):
                     p.setXLink(xlink)
                 xlink = p
 
-                if self.ShowTime:
+                if not self.ShowSamples:
                     p.setLabel('bottom', 'Time', units='s', **labelStyle)
                 else:
                     p.setLabel('bottom', 'Samps', **labelStyle)
@@ -422,13 +438,13 @@ class Plotter(Qt.QThread):
     def run(self, *args, **kwargs):
         while True:
             if self.Buffer.counter > self.RefreshInd:
-                if self.ShowTime:
+                if not self.ShowSamples:
                     t = self.Buffer.GetTimes(self.ViewInd)
                 self.Buffer.Reset()
 
                 for chn, ch in self.ChannelConf.items():
                     dat = self.Buffer[-self.ViewInd:, ch['Input']]+ch['Offset']
-                    if self.ShowTime:
+                    if not self.ShowSamples:
                         self.Curves[chn].setData(t, dat)
                     else:
                         self.Curves[chn].setData(dat)
@@ -464,11 +480,13 @@ PSDPars = ({'name': 'Fs',
             'type': 'float',
             'value': 1,
             'step': 10,
+            'limits': (0.001, 1000),
             'siPrefix': True,
             'suffix': 'Hz'},
            {'name': 'nFFT',
             'title': 'nFFT 2**x',
             'type': 'int',
+            'limits': (2, 32),
             'value': 15,
             'step': 1},
            {'name': 'scaling',
@@ -478,6 +496,7 @@ PSDPars = ({'name': 'Fs',
            {'name': 'nAvg',
             'type': 'int',
             'value': 4,
+            'limits': (0, 30),
             'step': 1},
            {'name': 'AcqTime',
             'readonly': True,
