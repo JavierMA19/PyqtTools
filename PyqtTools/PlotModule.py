@@ -21,7 +21,7 @@ ChannelPars = {'name': 'Ch01',
                              'value': 'ChXX'},
                             {'name': 'Enable',
                              'type': 'bool',
-                             'value': True, },
+                             'value': False, },
                             {'name': 'Window',
                              'type': 'int',
                              'value': 0, },
@@ -56,6 +56,14 @@ PlotterPars = ({'name': 'Fs',
                 'readonly': True,
                 'type': 'int',
                 'value': 1},
+               {'name': 'SelIndex',
+                'title': 'Inputs indexes',
+                'type': 'str',
+                'value': '1:3,'},
+               {'name': 'Indexes',
+                'title': 'Selected Inputs indexes',
+                'readonly': True,
+                'type': 'str'},
                {'name': 'ViewBuffer',
                 'type': 'float',
                 'value': 30,
@@ -101,6 +109,8 @@ DiscarParamsPlt = ('Channels',
                    'EnableAll',
                    'DisableAll',
                    'IncOffset',
+                   'SelIndex',
+                   'Indexes',
                    )
 
 
@@ -114,6 +124,7 @@ class PlotterParameters(pTypes.GroupParameter):
         self.param('EnableAll').sigActivated.connect(self.on_EnableAll)
         self.param('DisableAll').sigActivated.connect(self.on_DisableAll)
         self.param('ViewTime').sigValueChanged.connect(self.on_ViewTime)
+        self.param('SelIndex').sigValueChanged.connect(self.on_SelIndex)
 
     def on_ViewTime(self):
         vt = self.param('ViewTime').value()
@@ -178,9 +189,9 @@ class PlotterParameters(pTypes.GroupParameter):
         Channels : Dictionary, where key is the channel name
                    and value is an integer which indicate the index of the
                    input data array.
-        """
-        self.param('Channels').clearChildren()
+        """      
         nChannels = len(Channels)
+
         self.param('nChannels').setValue(nChannels)
         chPWind = int(nChannels/self.param('Windows').value())
         Chs = []
@@ -193,7 +204,46 @@ class PlotterParameters(pTypes.GroupParameter):
             Ch['children'][5]['value'] = pen.color()
             Ch['children'][7]['value'] = ind
             Chs.append(Ch)
+            
+        self.ChannelConf = Chs
 
+    def on_SelIndex(self):
+        strind = self.param('SelIndex').value()
+        nChannels = self.param('nChannels').value()
+
+        try:
+            # strind = '0, 9, 2:8, 9:16:2'
+            inds = []
+            for parts in strind.split(','):
+                raargs = []
+                ra = parts.split(':')
+                if len(ra) == 1:
+                    inds.append(int(ra[0]))
+                else:
+                    for r in ra:
+                        raargs.append(int(r))
+                    for i in range(*raargs):
+                        inds.append(i)
+            inds = list(set(sorted(inds)))
+            inds = [x for x in inds if x < nChannels]
+        except:
+            print('Invalid parsing')
+            return
+
+        self.InputIndexs = inds
+        self.param('Indexes').setValue(str(inds))
+
+        self.param('Channels').clearChildren()
+        
+        nChannelsPlt = len(inds)
+        Chs = []
+        for ind, i in enumerate(inds):
+            Ch = self.ChannelConf[i]
+            pen = pg.mkPen((ind, 1.3*nChannelsPlt))
+            Ch['children'][1]['value'] = True
+            Ch['children'][5]['value'] = pen.color()
+            Chs.append(Ch)
+        
         self.param('Channels').addChildren(Chs)
 
     def GetParams(self):
@@ -230,23 +280,6 @@ class PlotterParameters(pTypes.GroupParameter):
         PlotterKwargs['ChsDistribution'] = ChsDistribution
 
         return PlotterKwargs
-
-##############################################################################
-
-
-class PgPlotWindow(Qt.QWidget):
-    def __init__(self):
-        super(PgPlotWindow, self).__init__()
-        layout = Qt.QVBoxLayout(self) #crea el layout
-        self.pgLayout = pg.GraphicsLayoutWidget()
-        self.pgLayout.setFocusPolicy(Qt.Qt.WheelFocus)
-        layout.addWidget(self.pgLayout)
-        self.setLayout(layout) #to install the QVBoxLayout onto the widget
-        self.setFocusPolicy(Qt.Qt.WheelFocus)
-        self.show()
-
-
-##############################################################################
 
 
 class Buffer2D(np.ndarray):
@@ -298,11 +331,24 @@ class Buffer2D(np.ndarray):
     def Reset(self):
         self.counter = 0
 
-##############################################################################
+
+class PgPlotWindow(Qt.QWidget):
+    def __init__(self):
+        super(PgPlotWindow, self).__init__()
+        layout = Qt.QVBoxLayout(self) #crea el layout
+        self.pgLayout = pg.GraphicsLayoutWidget()
+        self.pgLayout.setFocusPolicy(Qt.Qt.WheelFocus)
+        layout.addWidget(self.pgLayout)
+        self.setLayout(layout) #to install the QVBoxLayout onto the widget
+        self.setFocusPolicy(Qt.Qt.WheelFocus)
+        self.show()
+
 
 labelStyle = {'color': '#FFF',
               'font-size': '7pt',
               'bold': True}
+
+
 class Plotter(Qt.QThread):
 
     def __init__(self, Fs, nChannels, ViewBuffer, ViewTime, RefreshTime, 
@@ -407,6 +453,10 @@ PSDPars = ({'name': 'Fs',
             'value': 2,
             'siPrefix': True,
             'suffix': 'Hz'},
+           {'name': 'nChannels',
+            'readonly': True,
+            'type': 'int',
+            'value': 1},
            {'name': 'PlotEnable',
             'type': 'bool',
             'value': True},
@@ -434,14 +484,14 @@ PSDPars = ({'name': 'Fs',
             'type': 'float',
             'siPrefix': True,
             'suffix': 's'},
-           {'name': 'OnlyEnabled',
-            'title': 'Show only enabled channels',
+           {'name': 'AllChannels',
+            'title': 'Show All Channels',
             'type': 'bool',
-            'value': False,
+            'value': True,
             },
            )
 
-PSDParsList = ('Fs', 'nFFT', 'nAvg', 'nChannels', 'scaling', 'OnlyEnabled')
+PSDParsList = ('Fs', 'nFFT', 'nAvg', 'nChannels', 'scaling')
 
 
 class PSDParameters(pTypes.GroupParameter):
@@ -455,6 +505,8 @@ class PSDParameters(pTypes.GroupParameter):
         self.param('Fmin').sigValueChanged.connect(self.on_FminChange)
         self.param('nFFT').sigValueChanged.connect(self.on_nFFTChange)
         self.param('nAvg').sigValueChanged.connect(self.on_nAvgChange)
+        
+        self.ChannelConf = None
 
     def on_FsChange(self):
         Fs = self.param('Fs').value()
@@ -484,20 +536,32 @@ class PSDParameters(pTypes.GroupParameter):
         AcqTime = ((2**nFFT)/Fs)*nAvg
         self.param('AcqTime').setValue(AcqTime)
         self.NewConf.emit()
-        
+
     def GetParams(self):
         PSDKwargs = {}
         for p in self.children():
             if p.name() not in PSDParsList:
                 continue
             PSDKwargs[p.name()] = p.value()
+
+        ChannelConf = {}
+        for Ch in self.ChannelConf:
+            chp = {}
+            for pp in Ch['children']:
+                chp[pp['name']] = pp['value']
+
+            if self.param('AllChannels').value():
+                ChannelConf[chp['name']] = chp
+            if chp['Enable']:
+                ChannelConf[chp['name']] = chp
+    
+        PSDKwargs['ChannelConf'] = ChannelConf
         return PSDKwargs
 
 
 class PSDPlotter(Qt.QThread):
 
-    def __init__(self, Fs, nFFT, nAvg, nChannels, scaling,
-                 ChannelConf, OnlyEnabled):
+    def __init__(self, Fs, nFFT, nAvg, nChannels, scaling, ChannelConf):
 
         super(PSDPlotter, self).__init__()
 
@@ -519,18 +583,14 @@ class PSDPlotter(Qt.QThread):
             p.setLabel('left', ' PSD', units=' V**2/Hz', **labelStyle)
         else:
             p.setLabel('left', ' PSD', units=' V**2', **labelStyle)
-        self.Legend = p.addLegend()
+        # self.Legend = p.addLegend()
 
         for chn, ch in ChannelConf.items():
-            if OnlyEnabled:
-                if not ch['Enable']:
-                    continue
-
             self.ChannelConf[chn] = ch
             c = p.plot(pen=pg.mkPen(ch['color'],
                                     width=ch['width'],
                                     name=chn))
-            self.Legend.addItem(c, chn)
+            # self.Legend.addItem(c, chn)
             self.Plots[chn] = p
             self.Curves[chn] = c
 

@@ -76,7 +76,7 @@ class MainWindow(Qt.QWidget):
         self.PsdPlotParams.NewConf.connect(self.on_NewPSDConf)
 
         # Event for debug print of changes
-        self.Parameters.sigTreeStateChanged.connect(self.on_Params_changed)
+        # self.Parameters.sigTreeStateChanged.connect(self.on_Params_changed)
 
         # First call of some events for initializations
         self.on_gennChannels_changed()
@@ -149,6 +149,9 @@ class MainWindow(Qt.QWidget):
 
     def on_gennChannels_changed(self):
         self.PlotParams.SetChannels(self.SigGenParams.GetChannels())
+        self.PsdPlotParams.ChannelConf = self.PlotParams.ChannelConf
+        nChannels = self.PlotParams.param('nChannels').value()
+        self.PsdPlotParams.param('nChannels').setValue(nChannels)
 
     def on_SigGen_changed(self):
         if self.threadGeneration is not None:
@@ -274,10 +277,7 @@ class MainWindow(Qt.QWidget):
 
             if self.PsdPlotParams.param('PlotEnable').value():
                 PSDKwargs = self.PsdPlotParams.GetParams()
-                ChannelConf = self.PlotParams.GetParams()['ChannelConf']
-                self.threadPsdPlotter = PSDPlt(ChannelConf=ChannelConf,
-                                               nChannels=Pltkw['nChannels'],
-                                               **PSDKwargs)
+                self.threadPsdPlotter = PSDPlt(**PSDKwargs)
                 self.threadPsdPlotter.start()
 
             if self.FileParams.param('Enabled').value():
