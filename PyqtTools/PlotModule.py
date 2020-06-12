@@ -242,6 +242,7 @@ class PlotterParameters(pTypes.GroupParameter):
                         inds.append(i)
             inds = list(set(sorted(inds)))
             inds = [x for x in inds if x < nChannels]
+            inds = [x for x in inds if x > 0]
         except:
             print('Invalid parsing')
             return
