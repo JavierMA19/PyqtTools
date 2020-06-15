@@ -97,11 +97,18 @@ PlotterPars = ({'name': 'Fs',
                 'value': 0,
                 'siPrefix': True,
                 },
+               {'name': 'ChsAxis',
+                'title': 'Channels per axis',
+                'type': 'int',
+                'value': 1,
+                'limits': (1, 100),
+                'siPrefix': True,
+                },
                {'name': 'ShowSamples',
                 'title': 'Show Samples',
                 'type': 'bool',
-                'value': False,                
-                },               
+                'value': False,
+                },
                {'name': 'EnableAll',
                 'title': 'Enable all channels',
                 'type': 'action',
@@ -113,7 +120,8 @@ PlotterPars = ({'name': 'Fs',
                {'name': 'Channels',
                 'type': 'group',
                 'children': []},)
-               
+
+
 DiscarParamsPlt = ('Channels',
                    'Windows',
                    'PlotEnable',
@@ -122,6 +130,7 @@ DiscarParamsPlt = ('Channels',
                    'IncOffset',
                    'SelIndex',
                    'Indexes',
+                   'ChsAxis',
                    )
 
 
@@ -139,6 +148,7 @@ class PlotterParameters(pTypes.GroupParameter):
         self.param('ViewTime').sigValueChanged.connect(self.on_ViewTime)
         self.param('SelIndex').sigValueChanged.connect(self.on_SelIndex)
         self.param('RefreshTime').sigValueChanged.connect(self.on_RefreshTime)
+        self.param('ChsAxis').sigValueChanged.connect(self.on_ChsAxis)
 
     def on_RefreshTime(self):
         self.NewConf.emit()
@@ -188,14 +198,34 @@ class PlotterParameters(pTypes.GroupParameter):
 
     def on_DisableAll(self):
         for p in self.param('Channels').children():
-            p.param('Enable').setValue(False)
+            p.param('Enable').setValue(False)   
+       
+    def on_ChsAxis(self):
+        _ , ChannelConf, WinDist = self.GetChannelDistribution()
+        
+        chPAxis = self.param('ChsAxis').value()
+
+        AxisDist = {}
+        for win, chs in WinDist.items():            
+            for ich, chn in enumerate(chs):
+                AxisDist[chn] = int(ich/chPAxis)
+
+        print(AxisDist, WinDist)
+        for p in self.param('Channels').children():
+            for pp in p.children():
+                if pp.name() == 'Axis':
+                    axs = AxisDist[p.name()]
+                    pp.setValue(axs)
 
     def on_WindowsChange(self):
+        # Assing window to each channel
         chs = self.param('Channels').children()
         chPWind = int(len(chs)/self.param('Windows').value())
         for ind, ch in enumerate(chs):            
             ch.child('Window').setValue(int(ind/chPWind))
-
+       
+        self.on_ChsAxis()
+                
     def SetChannels(self, Channels):
         """
         Set the plotting channels.
@@ -242,7 +272,7 @@ class PlotterParameters(pTypes.GroupParameter):
                         inds.append(i)
             inds = list(set(sorted(inds)))
             inds = [x for x in inds if x < nChannels]
-            inds = [x for x in inds if x > 0]
+            inds = [x for x in inds if x >= 0]
         except:
             print('Invalid parsing')
             return
@@ -262,25 +292,23 @@ class PlotterParameters(pTypes.GroupParameter):
             Chs.append(Ch)
         
         self.param('Channels').addChildren(Chs)
+        self.on_WindowsChange()
 
-    def GetParams(self):
-        PlotterKwargs = {}
-        for p in self.children():
-            if p.name() in DiscarParamsPlt:
-                continue
-            PlotterKwargs[p.name()] = p.value()
-
+    def GetChannelDistribution(self):
         Windows = {}
+        WinDist = {}
         for i in range(self.param('Windows').value()):
             Windows[i] = []
+            WinDist[i] = []
 
         for p in self.param('Channels').children():
             if p['Enable']:
                 Windows[p['Window']].append(p['Axis'])
+                WinDist[p['Window']].append(p['name'])
 
         ChsDistribution = {}
         for win in range(self.param('Windows').value()):
-            ChsDistribution[i] = {}
+            ChsDistribution[win] = {}
             for ax in set(Windows[win]):
                 ChsDistribution[win][ax] = []
 
@@ -292,12 +320,21 @@ class PlotterParameters(pTypes.GroupParameter):
             ChannelConf[chp['name']] = chp.copy()
             if chp['Enable']:
                 ChsDistribution[chp['Window']][chp['Axis']].append(chp['name'])
-            
+        
+        return ChsDistribution, ChannelConf, WinDist
+
+    def GetParams(self):
+        PlotterKwargs = {}
+        for p in self.children():
+            if p.name() in DiscarParamsPlt:
+                continue
+            PlotterKwargs[p.name()] = p.value()
+
+        ChsDistribution, ChannelConf, _ = self.GetChannelDistribution()
         PlotterKwargs['ChannelConf'] = ChannelConf
         PlotterKwargs['ChsDistribution'] = ChsDistribution
 
         return PlotterKwargs
-
 
 class Buffer2D(np.ndarray):
     def __new__(subtype, Fs, nChannels, ViewBuffer,
