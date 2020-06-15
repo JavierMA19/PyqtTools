@@ -414,19 +414,19 @@ class Plotter(Qt.QThread):
         self.SetRefreshTime(RefreshTime)
         self.SetViewTime(ViewTime)
 
-        p = None
-
         for win, axs in ChsDistribution.items():
             wind = PgPlotWindow()
             self.Winds.append(wind)
 
             xlink = None
+            p = None
             for ax, chs in axs.items():
                 wind.pgLayout.nextRow()
                 p = wind.pgLayout.addPlot()
                 p.hideAxis('bottom')
 
                 p.setDownsampling(auto=True,
+                                  # mode='peak',
                                   mode='subsample',
                                   )
                 if xlink is not None:
