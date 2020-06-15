@@ -233,29 +233,6 @@ class MainWindow(Qt.QWidget):
         if self.threadPsdPlotter is not None:
             self.threadPsdPlotter.AddData(self.threadGeneration.OutData)
 
-    def Gen_Destroy_PsdPlotter(self):
-        '''
-        This function is executed to initialize and start or destroy PSD plot
-        '''
-        # If PSD plot thread does not exist
-        if self.threadPsdPlotter is None:
-            # And the plot enable checkbox is selected
-            if self.PsdPlotParams.param('PSDEnable').value() is True:
-                # A dictionary obtained with Get Params function is saved
-                PlotterKwargs = self.PlotParams.GetParams()
-                # And is sent to PSDPlotter thread to initialize it
-                self.threadPsdPlotter = PSDPlt.PSDPlotter(ChannelConf=PlotterKwargs['ChannelConf'],
-                                                          nChannels=1,
-                                                          **self.PsdPlotParams.GetParams())
-                # Then thread is started
-                self.threadPsdPlotter.start()
-        # If PSD plot thread exists
-        if self.threadPsdPlotter is not None:
-            # And plot enable checkbox is not selected
-            if self.PsdPlotParams.param('PSDEnable').value() is False:
-                # The thread is stopped and set to None
-                self.threadPsdPlotter.stop()
-                self.threadPsdPlotter = None
 
 if __name__ == '__main__':
     app = Qt.QApplication([])

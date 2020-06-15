@@ -12,6 +12,7 @@ import copy
 from PyQt5 import Qt
 import numpy as np
 from scipy.signal import welch
+import math
 
 
 ChannelPars = {'name': 'Ch01',
@@ -90,7 +91,9 @@ PlotterPars = ({'name': 'Fs',
                 'suffix': 's'},
                {'name': 'Windows',
                 'type': 'int',
-                'value': 1},
+                'value': 1,
+                'limits': (1, 16),
+                },
                {'name': 'IncOffset',
                 'title': 'Incremental Offset',
                 'type': 'float',
@@ -162,22 +165,7 @@ class PlotterParameters(pTypes.GroupParameter):
 
     def on_SetOffset(self):
         Windows = {}
-        for i in range(self.param('Windows').value()):
-            Windows[i] = []
-
-        for p in self.param('Channels').children():
-            if p['Enable']:
-                Windows[p['Window']].append(p['Axis'])
-
-        ChsDistribution = {}
-        for win in range(self.param('Windows').value()):
-            ChsDistribution[i] = {}
-            for ax in set(Windows[win]):
-                ChsDistribution[win][ax] = []
-
-        for ic, p in enumerate(self.param('Channels').children()):
-            if p['Enable']:
-                ChsDistribution[p['Window']][p['Axis']].append(p['name'])
+        ChsDistribution, _, _ = self.GetChannelDistribution()
         
         incoff = self.param('IncOffset').value()
         offsets = {}
@@ -217,10 +205,12 @@ class PlotterParameters(pTypes.GroupParameter):
                     axs = AxisDist[p.name()]
                     pp.setValue(axs)
 
+        self.on_SetOffset()
+
     def on_WindowsChange(self):
         # Assing window to each channel
         chs = self.param('Channels').children()
-        chPWind = int(len(chs)/self.param('Windows').value())
+        chPWind = math.ceil(len(chs)/self.param('Windows').value())
         for ind, ch in enumerate(chs):            
             ch.child('Window').setValue(int(ind/chPWind))
        
@@ -427,7 +417,6 @@ class Plotter(Qt.QThread):
         p = None
 
         for win, axs in ChsDistribution.items():
-            # print('chs---------->', chs)
             wind = PgPlotWindow()
             self.Winds.append(wind)
 
@@ -436,10 +425,6 @@ class Plotter(Qt.QThread):
                 wind.pgLayout.nextRow()
                 p = wind.pgLayout.addPlot()
                 p.hideAxis('bottom')
-                p.setLabel(axis='left',
-                           text='name',
-                           units='A',
-                           **labelStyle)
 
                 p.setDownsampling(auto=True,
                                   mode='subsample',
@@ -448,12 +433,9 @@ class Plotter(Qt.QThread):
                     p.setXLink(xlink)
                 xlink = p
 
-                if not self.ShowSamples:
-                    p.setLabel('bottom', 'Time', units='s', **labelStyle)
-                else:
-                    p.setLabel('bottom', 'Samps', **labelStyle)
-
+                lab = ''
                 for chn in chs:
+                    lab = lab + chn + '\n\r'
                     self.ChannelConf[chn] = ChannelConf[chn]
                     col = ChannelConf[chn]['color']
                     width = ChannelConf[chn]['width']
@@ -461,9 +443,21 @@ class Plotter(Qt.QThread):
                                             width=width))
                     self.Plots[chn] = p
                     self.Curves[chn] = c
+
+                p.setLabel(axis='left',
+                           text=lab,
+                           units='A',
+                           **labelStyle)
+
+
             if p is not None:
                 p.setClipToView(True)
                 p.showAxis('bottom')
+                if not self.ShowSamples:
+                    p.setLabel('bottom', 'Time', units='s', **labelStyle)
+                else:
+                    p.setLabel('bottom', 'Samps', **labelStyle)
+
 
     def SetViewTime(self, ViewTime):
         self.ViewTime = ViewTime
