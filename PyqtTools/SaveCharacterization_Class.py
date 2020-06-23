@@ -1,87 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec 11 14:37:00 2019
+Created on Tue Jun 23 11:58:22 2020
 
-@author: Lucia
+@author: lucia
 """
-import numpy as np
-from PyQt5 import Qt
-from PyQt5.QtCore import QObject
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from PyQt5.QtWidgets import QFileDialog
-
-import PyGFETdb.DataStructures as PyData
 
 import numpy as np
 import pickle
 
-# ###############################PRAMETERES TREE##############################
-SaveSweepParams = ({'name': 'SaveSweepConfig',
-                    'type': 'group',
-                    'children': ({'name': 'Save File',
-                                  'type': 'action'},
-                                 {'name': 'Folder',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Oblea',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Disp',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Name',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Cycle',
-                                  'type': 'int',
-                                  'value': 0},
-                                 )
-                    })
+from PyQt5 import Qt
+from PyQt5.QtCore import QObject
 
-
-class SaveSweepParameters(pTypes.GroupParameter):
-    def __init__(self, QTparent, **kwargs):
-        pTypes.GroupParameter.__init__(self, **kwargs)
-
-        self.QTparent = QTparent
-        self.addChild(SaveSweepParams)
-        self.SvSwParams = self.param('SaveSweepConfig')
-        self.SvSwParams.param('Save File').sigActivated.connect(self.FileDialog)
-
-    def FileDialog(self):
-        RecordFile = QFileDialog.getExistingDirectory(self.QTparent,
-                                                      "Select Directory",
-                                                      )
-        if RecordFile:
-            self.SvSwParams.param('Folder').setValue(RecordFile)
-
-    def GetParams(self):
-        '''Returns de parameters to save the caracterization
-           Config={'Folder': 'C:/Users/Lucia/Dropbox (ICN2 AEMD - GAB GBIO)/
-                              TeamFolderLMU/FreqMux/Lucia/DAQTests/SweepTests
-                              /18_12_19',
-                   'Oblea': 'testPyCont',
-                   'Disp': 'Test',
-                   'Name': 'Test',
-                   'Cycle': 0
-                   }
-        '''
-        Config = {}
-        for Conf in self.SvSwParams.children():
-            if Conf.name() == 'Save File':
-                continue
-            Config[Conf.name()] = Conf.value()
-        print('ConfigSave', Config)
-        return Config
-
-    def FilePath(self):
-        return self.param('Folder').value()
-
-# ##################################CLASS#####################################
-
+import PyGFETdb.DataStructures as PyData
 
 class SaveDicts(QObject):
     PSDSaved = Qt.pyqtSignal()
+    DCSaved = Qt.pyqtSignal()
 
     def __init__(self, SwVdsVals, SwVgsVals, Channels,
                  nFFT, FsDemod, Gate=False):
@@ -101,19 +35,14 @@ class SaveDicts(QObject):
         super(SaveDicts, self).__init__()
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = {}
-        # Se hace un enumerate para tener indices de 0 a X para las
-        # rows activas (no es lo mismo este valor que el indice de entrada
-        # de la daqcard que siempre es fijo independientemente de las rows
-        # activas)
+
         index = 0
         for ch in sorted(Channels):
             self.ChannelIndex[ch] = (index)
             index = index+1
 
-        # DC dictionaries
-        # Vds se divide por raiz de 2 para guardar su valor RMS
-        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals/np.sqrt(2),
-                                             nVgs=(-1)*SwVgsVals,
+        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,
+                                             nVgs=SwVgsVals,
                                              ChNames=self.ChNamesList,
                                              Gate=Gate)
         # AC dictionaries
@@ -122,9 +51,9 @@ class SaveDicts(QObject):
 
         Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
         nFgm = np.array([])
-        # Vds se divide por raiz de 2 para guardar su valor RMS
-        self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals/np.sqrt(2),
-                                             nVgs=(-1)*SwVgsVals,
+
+        self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
+                                             nVgs=SwVgsVals,
                                              nFgm=nFgm,
                                              nFpsd=Fpsd,
                                              ChNames=self.ChNamesList)
@@ -139,6 +68,7 @@ class SaveDicts(QObject):
         for chn, inds in self.ChannelIndex.items():
             self.DevDCVals[chn]['Ids'][SwVgsInd,
                                        SwVdsInd] = Ids[inds]
+        self.DCSaved.emit()
 
         # print('DCSaved')
 
@@ -156,7 +86,7 @@ class SaveDicts(QObject):
             self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                     SwVgsInd] = psd[:, inds].flatten()
             self.DevACVals[chn]['Fpsd'] = ff
-        # print('ACSaved')
+       
         self.PSDSaved.emit()
 
     def SaveDicts(self, Dcdict, Acdict, Folder, Oblea, Disp, Name, Cycle):
@@ -258,4 +188,4 @@ class SaveDicts(QObject):
             pickle.dump(Dcdict, f)
             pickle.dump(Acdict, f)
         print('Saved')
-
+        
