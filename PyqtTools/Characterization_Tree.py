@@ -101,8 +101,10 @@ SaveSweepsParams = ({'name': 'SaveSweepConfig',
                     })
 
 class SweepsConfig(pTypes.GroupParameter):
-    def __init__(self, **kwargs):
+    def __init__(self, QTparent, **kwargs):
         pTypes.GroupParameter.__init__(self, **kwargs)
+        self.QTparent = QTparent
+        
         self.addChild(ConfigSweepsParams)
         self.SwConfig = self.param('SweepsConfig')
 

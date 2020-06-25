@@ -9,6 +9,7 @@ from PyQt5 import Qt
 import numpy as np
 
 import Pyxi.CalcPSD as PSD
+import PyqtTools.PlotModule as PltBuffer2D
 import PyqtTools.SaveCharacterization_Class as SaveDicts
 
 
@@ -17,8 +18,8 @@ class StbDetThread(Qt.QThread):
     NextVd = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
 
-    def __init__(self, ACenable, VdVals, VgVals, MaxSlope, TimeOut, TimeBuffer, 
-                 nChannels, ChnName, PlotterDemodKwargs):
+    def __init__(self, ACenable, VdSweep, VgSweep, MaxSlope, TimeOut, TimeBuffer, 
+                 nChannels, ChnName, PlotterDemodKwargs, **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -55,6 +56,8 @@ class StbDetThread(Qt.QThread):
 
         self.VgIndex = 0
         self.VdIndex = 0
+        self.VgSweepVals = VgSweep
+        self.VdSweepVals = VdSweep
 
         self.Timer = Qt.QTimer()
         self.Timer.timeout.connect(self.printTime)
@@ -66,8 +69,8 @@ class StbDetThread(Qt.QThread):
         self.threadCalcPSD = PSD.CalcPSD(nChannels=nChannels,
                                          **PlotterDemodKwargs)
         self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
-        self.SaveDCAC = SaveDicts.SaveDicts(SwVdsVals=VdVals,
-                                            SwVgsVals=VgVals,
+        self.SaveDCAC = SaveDicts.SaveDicts(SwVdsVals=VdSweep,
+                                            SwVgsVals=VgSweep,
                                             Channels=ChnName,
                                             nFFT=int(PlotterDemodKwargs['nFFT']),
                                             FsDemod=PlotterDemodKwargs['Fs']
@@ -77,15 +80,12 @@ class StbDetThread(Qt.QThread):
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
 
-    def initTimer(self):
-        self.Timer.timeout.connect(self.printTime)
-
     def run(self):
         while True:
             if self.Buffer.IsFilled():
                 Data = self.Buffer
                 for dat in Data.transpose():
-                    r, c = dat.shape
+                    r = len(dat)
                     x = np.arange(0, r)
                     mm, oo = np.polyfit(x, dat, 1)
                     Dev = np.abs(np.mean(mm))
@@ -94,20 +94,14 @@ class StbDetThread(Qt.QThread):
                     if Dev < self.MaxSlope:
                         print('Final slope is -->', Dev)
                         self.Timer.stop()
-                        self.Timer.timeout.disconnect()
+                        # self.Timer.timeout.disconnect(self.printTime)
                         self.DCIdCalc()
 
                 self.Buffer.Reset()
 
             else:
                 Qt.QThread.msleep(10)
-            if self.ToStabData is not None:
-                Data = self.ToStabData
 
-                self.ToStabData = None
-
-            else:
-                Qt.QThread.msleep(10)
 
     def AddData(self, NewData):
         if self.Stable is False:
@@ -119,7 +113,7 @@ class StbDetThread(Qt.QThread):
     def printTime(self):
         print('TimeOut')
         self.Timer.stop()
-        self.Timer.timeout.disconnect()
+        # self.Timer.timeout.disconnect(self.printTime)
         self.DCIdCalc()
 
     def DCIdCalc(self):
@@ -137,6 +131,8 @@ class StbDetThread(Qt.QThread):
             self.ptrend = np.polyfit(x, Data, 1)
 
             self.DCIds[ind] = (self.ptrend[-1])  # Se toma el ultimo valor
+        
+        print(self.DCIds.shape)
         # Se guardan los valores DC
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  SwVgsInd=self.VgIndex,
