@@ -90,7 +90,7 @@ class SaveDicts(QObject):
        
         self.PSDSaved.emit()
 
-    def SaveDicts(self, Dcdict, Acdict, Folder, Oblea, Disp, Name, Cycle):
+    def SaveDicts(self, Dcdict, Folder, Oblea, Disp, Name, Cycle, Acdict=None):
         '''Creates the appropiate Folder NAme to be upload to the database
            Dcdict: dictionary. Dictionary with DC characterization that has
                                the structure to be read and save correctly
@@ -187,6 +187,7 @@ class SaveDicts(QObject):
 #        print(self.FileName)
         with open(self.FileName, "wb") as f:
             pickle.dump(Dcdict, f)
-            pickle.dump(Acdict, f)
+            if Acdict is not None:
+                pickle.dump(Acdict, f)
         print('Saved')
         

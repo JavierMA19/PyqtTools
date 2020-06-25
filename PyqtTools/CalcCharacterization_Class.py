@@ -141,7 +141,6 @@ class StbDetThread(Qt.QThread):
 
             self.DCIds[ind] = (self.ptrend[-1])  # Se toma el ultimo valor
         
-        print(self.DCIds.shape)
         # Se guardan los valores DC
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  SwVgsInd=self.VgIndex,
@@ -185,7 +184,10 @@ class StbDetThread(Qt.QThread):
             self.NextVd.disconnect()
             
             self.DCDict = self.SaveDCAC.DevDCVals
-            self.ACDict = self.SaveDCAC.DevACVals
+            if self.ACenable:
+                self.ACDict = self.SaveDCAC.DevACVals
+            else:
+                self.ACDict = None
             self.CharactEnd.emit()
         
             
