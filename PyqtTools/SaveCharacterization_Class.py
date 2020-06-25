@@ -18,7 +18,7 @@ class SaveDicts(QObject):
     DCSaved = Qt.pyqtSignal()
 
     def __init__(self, SwVdsVals, SwVgsVals, Channels,
-                 nFFT, FsDemod, Gate=False):
+                 nFFT, FsDemod, Gate=False, ACenable=True):
         '''Initialize the Dictionaries to Save the Characterization
            SwVdsVals: array. Contains the values for the Vd sweep
                              [0.1, 0.2]
@@ -46,17 +46,18 @@ class SaveDicts(QObject):
                                              ChNames=self.ChNamesList,
                                              Gate=Gate)
         # AC dictionaries
-        self.PSDnFFT = 2**nFFT
-        self.PSDFs = FsDemod
-
-        Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
-        nFgm = np.array([])
-
-        self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
-                                             nVgs=SwVgsVals,
-                                             nFgm=nFgm,
-                                             nFpsd=Fpsd,
-                                             ChNames=self.ChNamesList)
+        if ACenalbe:
+            self.PSDnFFT = 2**nFFT
+            self.PSDFs = FsDemod
+    
+            Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
+            nFgm = np.array([])
+    
+            self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
+                                                 nVgs=SwVgsVals,
+                                                 nFgm=nFgm,
+                                                 nFpsd=Fpsd,
+                                                 ChNames=self.ChNamesList)
 
     def SaveDCDict(self, Ids, SwVgsInd, SwVdsInd):
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form

@@ -66,17 +66,19 @@ class StbDetThread(Qt.QThread):
                                            nChannels,
                                            TimeBuffer)
         
-        self.threadCalcPSD = PSD.CalcPSD(nChannels=nChannels,
-                                         **PlotterDemodKwargs)
-        self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
-        self.SaveDCAC = SaveDicts.SaveDicts(SwVdsVals=VdSweep,
+        self.SaveDCAC = SaveDicts.SaveDicts(ACenalbe=self.ACenable,
+                                            SwVdsVals=VdSweep,
                                             SwVgsVals=VgSweep,
                                             Channels=ChnName,
                                             nFFT=int(PlotterDemodKwargs['nFFT']),
                                             FsDemod=PlotterDemodKwargs['Fs']
                                             )
         if self.ACenable:
+            self.threadCalcPSD = PSD.CalcPSD(nChannels=nChannels,
+                                         **PlotterDemodKwargs)
+            self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
+            
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
 
@@ -84,18 +86,24 @@ class StbDetThread(Qt.QThread):
         while True:
             if self.Buffer.IsFilled():
                 Data = self.Buffer
-                for dat in Data.transpose():
+                ChnInd = 0
+                Dev = np.ndarray((Data.shape[1],))
+                for ChnInd, dat in enumerate(Data.transpose()):
                     r = len(dat)
                     x = np.arange(0, r)
                     mm, oo = np.polyfit(x, dat, 1)
-                    Dev = np.abs(np.mean(mm))
-                    print('Slope Calc -->', Dev)
-
-                    if Dev < self.MaxSlope:
+                    Dev[ChnInd] = np.abs(np.mean(mm))
+                    if Dev[ChnInd] > self.MaxSlope:
+                        print('ChnInd', ChnInd)
+                        print('Slope Calc -->', Dev)
+                
+                for slope in Dev:
+                    if slope < self.MaxSlope:
                         print('Final slope is -->', Dev)
                         self.Timer.stop()
                         # self.Timer.timeout.disconnect(self.printTime)
                         self.DCIdCalc()
+                    break
 
                 self.Buffer.Reset()
 
@@ -107,8 +115,9 @@ class StbDetThread(Qt.QThread):
         if self.Stable is False:
             self.Buffer.AddData(NewData)
             self.Datos = self.Buffer  # se guardan los datos para que no se sobreescriban
-        if self.Stable is True:
-            self.threadCalcPSD.AddData(NewData)
+        if self.ACenable:
+            if self.Stable is True:
+                self.threadCalcPSD.AddData(NewData)
 
     def printTime(self):
         print('TimeOut')
@@ -181,8 +190,9 @@ class StbDetThread(Qt.QThread):
         
             
     def stop(self):
-        self.threadCalcPSD.PSDDone.disconnect()
-        self.SaveDCAC.PSDSaved.disconnect()
+        self.SaveDCAC.DCSaved.disconnect()
         if self.threadCalcPSD is not None:
+            self.SaveDCAC.PSDSaved.disconnect()
+            self.threadCalcPSD.PSDDone.disconnect()
             self.threadCalcPSD.stop()
         self.terminate()
