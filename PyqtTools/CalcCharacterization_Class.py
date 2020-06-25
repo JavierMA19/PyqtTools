@@ -103,7 +103,7 @@ class StbDetThread(Qt.QThread):
                         self.Timer.stop()
                         # self.Timer.timeout.disconnect(self.printTime)
                         self.DCIdCalc()
-                    break
+                        break
 
                 self.Buffer.Reset()
 
@@ -164,7 +164,7 @@ class StbDetThread(Qt.QThread):
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
-            
+            print(self.VgIndex)
             self.NextVg.emit()
         else:
             self.VgIndex = 0
@@ -175,13 +175,11 @@ class StbDetThread(Qt.QThread):
         
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
-            
+            print(self.VdIndex)
             self.NextVd.emit()
 
         else:
             self.VdIndex = 0
-            self.NextVg.disconnect()
-            self.NextVd.disconnect()
             
             self.DCDict = self.SaveDCAC.DevDCVals
             if self.ACenable:
