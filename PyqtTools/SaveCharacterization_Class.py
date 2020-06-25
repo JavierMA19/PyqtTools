@@ -46,7 +46,7 @@ class SaveDicts(QObject):
                                              ChNames=self.ChNamesList,
                                              Gate=Gate)
         # AC dictionaries
-        if ACenalbe:
+        if ACenable:
             self.PSDnFFT = 2**nFFT
             self.PSDFs = FsDemod
     

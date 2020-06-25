@@ -66,7 +66,7 @@ class StbDetThread(Qt.QThread):
                                            nChannels,
                                            TimeBuffer)
         
-        self.SaveDCAC = SaveDicts.SaveDicts(ACenalbe=self.ACenable,
+        self.SaveDCAC = SaveDicts.SaveDicts(ACenable=self.ACenable,
                                             SwVdsVals=VdSweep,
                                             SwVgsVals=VgSweep,
                                             Channels=ChnName,
@@ -190,7 +190,7 @@ class StbDetThread(Qt.QThread):
         
             
     def stop(self):
-        self.SaveDCAC.DCSaved.disconnect()
+        # self.SaveDCAC.DCSaved.disconnect()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
             self.threadCalcPSD.PSDDone.disconnect()
