@@ -348,6 +348,7 @@ class StbDetThread(Qt.QThread):
             self.NextVg.emit()
         else:
             self.VgIndex = 0
+            self.NextVgs = self.VgSweepVals[self.VgIndex]
             self.on_NextVds()
 
     def on_NextVds(self):
@@ -360,7 +361,7 @@ class StbDetThread(Qt.QThread):
 
         else:
             self.VdIndex = 0
-            
+            self.NextVds = self.VdSweepVals[self.VdIndex]
             self.DCDict = self.SaveDCAC.DevDCVals
             if self.ACenable:
                 self.ACDict = self.SaveDCAC.DevACVals
