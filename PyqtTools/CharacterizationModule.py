@@ -25,7 +25,7 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                     'children': ({'name': 'Start/Stop Sweep',
                                   # 'title': 'Start Sweep',
                                   'type': 'action', },
-                                 {'name': 'Pause Sweep',
+                                 {'name': 'Pause/ReStart Sweep',
                                   # 'title': 'Start Sweep',
                                   'type': 'action', },
                                  {'name': 'ACenable',
@@ -159,7 +159,7 @@ class SweepsConfig(pTypes.GroupParameter):
         for Config in self.SwConfig.children():
             if Config.name() == 'Start/Stop Sweep':
                 continue
-            if Config.name() == 'Pause Sweep':
+            if Config.name() == 'Pause/ReStart Sweep':
                 continue
             if Config.name() == 'VgSweep':
                 SwConfig[Config.name()] = self.VgSweepVals
@@ -236,6 +236,8 @@ class StbDetThread(Qt.QThread):
         self.VdIndex = 0
         self.VgSweepVals = VgSweep
         self.VdSweepVals = VdSweep
+        self.NextVgs = self.VgSweepVals[self.VgIndex]
+        self.NextVds =self.VdSweepVals[self.VdIndex]
 
         self.Timer = Qt.QTimer()
         self.Timer.timeout.connect(self.printTime)

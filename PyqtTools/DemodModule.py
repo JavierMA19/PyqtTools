@@ -216,7 +216,7 @@ class Demod():
 class DemodThread(Qt.QThread):
     NewData = Qt.pyqtSignal()
 
-    def __init__(self, Fcs, RowList, FetchSize, FsDemod, DSFact,
+    def __init__(self, Carriers, ScopeChannels, BufferSize, FsDemod, DSFact,
                  FiltOrder, Signal, Gain, **Keywards):
         '''Initialization of Demodulation Process Thread
            Fcs: dictionary. returns the name of the columns with its carrier
@@ -244,16 +244,16 @@ class DemodThread(Qt.QThread):
         self.Gain = Gain
         self.DemOutputs = []
         self.NamesForDict = []
-        for Row in RowList:
+        for Row in ScopeChannels:
             DemOut = []
-            for Cols, Freq in Fcs.items():
-                Dem = Demod(Freq, FetchSize, FsDemod, DSFact,
+            for Cols, Freq in Carriers.items():
+                Dem = Demod(Freq, BufferSize, FsDemod, DSFact,
                             FiltOrder, Signal)
                 DemOut.append(Dem)
                 self.NamesForDict.append(str(Row+Cols))
             self.DemOutputs.append(DemOut)
-        self.OutDemodData = np.ndarray((round(FetchSize/DSFact),
-                                        round(len(RowList)*len(Fcs.keys()))),
+        self.OutDemodData = np.ndarray((round(BufferSize/DSFact),
+                                        round(len(ScopeChannels)*len(Carriers.keys()))),
                                         dtype=complex)
 
     def run(self):
