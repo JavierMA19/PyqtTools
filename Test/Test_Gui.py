@@ -120,6 +120,7 @@ class MainWindow(Qt.QWidget):
         self.PsdPlotParams.ChannelConf = self.PlotParams.ChannelConf
         nChannels = self.PlotParams.param('nChannels').value()
         self.PsdPlotParams.param('nChannels').setValue(nChannels)
+        print(self.SigGenParams.GetChannels())
 
     def on_SigGen_changed(self):
         if self.threadGeneration is not None:
@@ -130,6 +131,7 @@ class MainWindow(Qt.QWidget):
         Fs = self.SigGenParams.Fs.value()
         self.PlotParams.param('Fs').setValue(Fs)
         self.PsdPlotParams.param('Fs').setValue(Fs)
+        print(Fs)
 
     def on_NewPSDConf(self):
         if self.threadPsdPlotter is not None:
@@ -181,10 +183,11 @@ class MainWindow(Qt.QWidget):
                               'nChannels': self.SigGenParams.nChannels.value(),
                               'Fs': None,
                               'ChnNames': None,
-                              'MaxSize': None,
+                              'MaxSize': self.FileParams.param('MaxSize').value(),
                               'dtype': 'float',
                               }
-                self.threadSave = self.FileMod.DataSavingThread(**FilekwArgs)
+                self.threadSave = FileMod.DataSavingThread(**FilekwArgs)
+                self.threadSave.start()
 
             self.on_ResetGraph()
 
@@ -222,6 +225,7 @@ class MainWindow(Qt.QWidget):
         self.OldTime = time.time()
         # Debug print of interruption time
         print('Sample time', Ts)
+        print(self.threadGeneration.OutData.shape)
 
         # pass new data to running threads
         if self.threadSave is not None:

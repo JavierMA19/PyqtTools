@@ -109,6 +109,7 @@ class FileBuffer():
         Time = np.linspace(0, x/self.Fs, x)
         plt.plot(Time, self.Dset)
 
+
 class DataSavingThread(Qt.QThread):
     def __init__(self, FileName, nChannels, Fs=None, ChnNames=None, 
                  MaxSize=None, dtype='float'):
@@ -131,7 +132,8 @@ class DataSavingThread(Qt.QThread):
     def AddData(self, NewData):
         if self.NewData is not None:
             print('Error Saving !!!!')
-        self.NewData = NewData
+        else:
+            self.NewData = NewData
     
     def stop (self):
         self.FileBuff.h5File.close()
@@ -219,3 +221,31 @@ def ReadArchivo(name):
     with open(name, "rb") as f:
         return pickle.load(f ,encoding = 'latin1')
 
+
+if __name__ == '__main__':
+    import time
+    
+    
+    f = FileBuffer(FileName='test.h5',
+                   MaxSize=50e6,
+                   nChannels=32)
+    
+    
+    
+    samps = np.int64(np.logspace(1, 7, 20))
+    
+    ts = []
+    for s in samps:
+        a = np.ones((s, 32))
+        Told = time.time()
+        f.AddSample(a)       
+        ts.append(time.time() - Told)        
+        
+    print(ts)
+    
+    plt.plot(samps, ts)
+    
+    plt.figure()
+    plt.plot(samps, samps/ts)
+    
+    
