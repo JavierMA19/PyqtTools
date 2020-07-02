@@ -84,6 +84,12 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                   'value': 1,
                                   'siPrefix': True,
                                   'suffix': 's'},
+                                 {'name': 'DelayTime',
+                                  'title': 'Time to wait for acquisition',
+                                  'type': 'int',
+                                  'value': 1,
+                                  'siPrefix': True,
+                                  'suffix': 's'},
                                  )}
 
 SaveSweepsParams = ({'name': 'SaveSweepConfig',
@@ -197,7 +203,7 @@ class StbDetThread(Qt.QThread):
     CharactEnd = Qt.pyqtSignal()
 
     def __init__(self, ACenable, VdSweep, VgSweep, MaxSlope, TimeOut, TimeBuffer, 
-                 nChannels, ChnName, PlotterDemodKwargs, **kwargs):
+                 DelayTime, nChannels, ChnName, PlotterDemodKwargs, **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -225,12 +231,16 @@ class StbDetThread(Qt.QThread):
         super(StbDetThread, self).__init__()
         self.threadCalcPSD = None
         self.ToStabData = None
+        self.Wait = True
         self.Stable = False
         self.Datos = None
         
         self.ACenable = ACenable
         self.MaxSlope = MaxSlope
         self.TimeOut = TimeOut
+        self.DelayTime = DelayTime
+        self.ElapsedTime = 0
+        self.FsDemod = PlotterDemodKwargs['Fs']
 
         self.VgIndex = 0
         self.VdIndex = 0
@@ -240,9 +250,9 @@ class StbDetThread(Qt.QThread):
         self.NextVds =self.VdSweepVals[self.VdIndex]
 
         self.Timer = Qt.QTimer()
-        self.Timer.timeout.connect(self.printTime)
+        # self.Timer.timeout.connect(self.printTime)
 
-        self.Buffer = PltBuffer2D.Buffer2D(PlotterDemodKwargs['Fs'],
+        self.Buffer = PltBuffer2D.Buffer2D(self.FsDemod,
                                            nChannels,
                                            TimeBuffer)
         
@@ -251,7 +261,7 @@ class StbDetThread(Qt.QThread):
                                   SwVgsVals=VgSweep,
                                   Channels=ChnName,
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
-                                  FsDemod=PlotterDemodKwargs['Fs']
+                                  FsDemod=self.FsDemod
                                   )
         if self.ACenable:
             self.threadCalcPSD = CalcPSD(nChannels=nChannels,
@@ -293,8 +303,22 @@ class StbDetThread(Qt.QThread):
 
     def AddData(self, NewData):
         if self.Stable is False:
-            self.Buffer.AddData(NewData)
-            self.Datos = self.Buffer  # se guardan los datos para que no se sobreescriban
+            if self.Wait:
+                self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDemod)
+                Diff = self.DelayTime-self.ElapsedTime
+                # print('Fs-->', self.FsDemod)
+                # print('NewData-->',len(NewData[:,0]))
+                # print('ElapsedTime-->', self.ElapsedTime)
+                # print('diff-->',Diff)
+                if Diff <= 0:
+                    print('Delay Time finished')
+                    self.Wait = False
+                    self.ElapsedTime = 0
+                    self.Timer.timeout.connect(self.printTime)
+                    self.Timer.start(self.TimeOut*1000)
+            else:            
+                self.Buffer.AddData(NewData)
+                self.Datos = self.Buffer  # se guardan los datos para que no se sobreescriban
         if self.ACenable:
             if self.Stable is True:
                 self.threadCalcPSD.AddData(NewData)
@@ -344,6 +368,7 @@ class StbDetThread(Qt.QThread):
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
+            self.Wait = True
             print(self.VgIndex)
             self.NextVg.emit()
         else:
@@ -356,6 +381,7 @@ class StbDetThread(Qt.QThread):
         
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
+            self.Wait = True
             print(self.VdIndex)
             self.NextVd.emit()
 
@@ -372,6 +398,7 @@ class StbDetThread(Qt.QThread):
             
     def stop(self):
         # self.SaveDCAC.DCSaved.disconnect()
+        self.Timer.stop()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
             self.threadCalcPSD.PSDDone.disconnect()
