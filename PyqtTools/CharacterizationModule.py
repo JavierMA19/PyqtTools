@@ -16,6 +16,7 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QFileDialog
 
 import PyGFETdb.DataStructures as PyData
+import PyGFETdb.PlotDataClass as PyFETpl
 import PyqtTools.PlotModule as PltBuffer2D
 
 ################PARAMETER TREE################################################
@@ -71,7 +72,9 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                  {'name': 'MaxSlope',
                                   'title': 'Maximum Slope',
                                   'type': 'float',
-                                  'value': 1e-10},
+                                  'value': 1e-10,
+                                  'siPrefix': True,
+                                  'suffix': 'A/s'},
                                  {'name': 'TimeOut',
                                   'title': 'Max Time for Stabilization',
                                   'type': 'int',
@@ -192,7 +195,7 @@ class SweepsConfig(pTypes.GroupParameter):
             if Conf.name() == 'Save File':
                 continue
             Config[Conf.name()] = Conf.value()
-        print('ConfigSave', Config)
+
         return Config  
 
 ################CHARACTERIZATION THREAD#######################################
@@ -271,6 +274,10 @@ class StbDetThread(Qt.QThread):
             
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
+            
+        self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
+        self.PlotSwDC = PyFETpl.PyFETPlot()
+        self.PlotSwDC.AddAxes(self.DCPlotVars)
 
     def run(self):
         while True:
@@ -280,9 +287,10 @@ class StbDetThread(Qt.QThread):
                 Dev = np.ndarray((Data.shape[1],))
                 for ChnInd, dat in enumerate(Data.transpose()):
                     r = len(dat)
+                    sec = (1/self.FsDemod)*r
                     x = np.arange(0, r)
                     mm, oo = np.polyfit(x, dat, 1)
-                    Dev[ChnInd] = np.abs(np.mean(mm))
+                    Dev[ChnInd] = np.abs(np.mean(mm))/sec #slope (uA/s)
                     if Dev[ChnInd] > self.MaxSlope:
                         print('ChnInd', ChnInd)
                         print('Slope Calc -->', Dev)
@@ -370,6 +378,7 @@ class StbDetThread(Qt.QThread):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
             self.Wait = True
             print(self.VgIndex)
+            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.NextVg.emit()
         else:
             self.VgIndex = 0
@@ -382,6 +391,7 @@ class StbDetThread(Qt.QThread):
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
+            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             print(self.VdIndex)
             self.NextVd.emit()
 
@@ -394,10 +404,17 @@ class StbDetThread(Qt.QThread):
             else:
                 self.ACDict = None
             self.CharactEnd.emit()
-        
+           
+    def UpdateSweepDcPlots(self, Dcdict):
+        if self.PlotSwDC:
+            self.PlotSwDC.ClearAxes()
+            self.PlotSwDC.PlotDataCh(Data=Dcdict)
+            self.PlotSwDC.AddLegend()
+            self.PlotSwDC.Fig.canvas.draw()  
             
     def stop(self):
         # self.SaveDCAC.DCSaved.disconnect()
+        # plt.close('all')
         self.Timer.stop()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
