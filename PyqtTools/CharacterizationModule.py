@@ -7,6 +7,7 @@ Created on Fri Jun 26 08:17:10 2020
 
 import numpy as np
 import pickle
+import datetime
 from scipy.signal import welch
 
 import pyqtgraph.parametertree.parameterTypes as pTypes
@@ -33,6 +34,11 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                   'title': 'AC Characterization',
                                   'type': 'bool',
                                   'value': True, },
+                                 {'name': 'StabCriteria',
+                                  'type': 'list',
+                                  'values': ['All channels', 'One Channel', 'Mean'],
+                                  'value': 'Mean',
+                                  'visible': True},
                                  {'name': 'VgSweep',
                                           'type': 'group',
                                           'children': ({'name': 'Vinit',
@@ -205,8 +211,9 @@ class StbDetThread(Qt.QThread):
     NextVd = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
 
-    def __init__(self, ACenable, VdSweep, VgSweep, MaxSlope, TimeOut, TimeBuffer, 
-                 DelayTime, nChannels, ChnName, PlotterDemodKwargs, **kwargs):
+    def __init__(self, ACenable, StabCriteria, VdSweep, VgSweep, MaxSlope, TimeOut, 
+                 TimeBuffer, DelayTime, nChannels, ChnName, PlotterDemodKwargs, 
+                 **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -231,14 +238,16 @@ class StbDetThread(Qt.QThread):
                                            'scaling': 'density',
                                            'nAvg': 50 }
         '''
+
         super(StbDetThread, self).__init__()
         self.threadCalcPSD = None
         self.ToStabData = None
         self.Wait = True
         self.Stable = False
-        self.Datos = None
+        self.StabTimeOut = False
         
         self.ACenable = ACenable
+        self.StabCriteria = StabCriteria
         self.MaxSlope = MaxSlope
         self.TimeOut = TimeOut
         self.DelayTime = DelayTime
@@ -253,7 +262,6 @@ class StbDetThread(Qt.QThread):
         self.NextVds =self.VdSweepVals[self.VdIndex]
 
         self.Timer = Qt.QTimer()
-        # self.Timer.timeout.connect(self.printTime)
 
         self.Buffer = PltBuffer2D.Buffer2D(self.FsDemod,
                                            nChannels,
@@ -282,51 +290,37 @@ class StbDetThread(Qt.QThread):
     def run(self):
         while True:
             if self.Buffer.IsFilled():
-                Data = self.Buffer
-                ChnInd = 0
-                Dev = np.ndarray((Data.shape[1],))
-                for ChnInd, dat in enumerate(Data.transpose()):
-                    r = len(dat)
-                    sec = (1/self.FsDemod)*r
-                    x = np.arange(0, r)
-                    mm, oo = np.polyfit(x, dat, 1)
-                    Dev[ChnInd] = np.abs(np.mean(mm))/sec #slope (uA/s)
-                    if Dev[ChnInd] > self.MaxSlope:
-                        print('ChnInd', ChnInd)
-                        print('Slope Calc -->', Dev)
-                
-                for slope in Dev:
-                    if slope < self.MaxSlope:
-                        print('Final slope is -->', Dev)
-                        self.Timer.stop()
-                        # self.Timer.timeout.disconnect(self.printTime)
-                        self.DCIdCalc()
-                        break
-
+                self.CalcSlope()
+                if self.Stable:
+                    print('IsStable')
+                    if self.ACenable:
+                        self.threadCalcPSD.start()
+                    self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
+                                             Dev=self.Dev,
+                                             SwVgsInd=self.VgIndex,
+                                             SwVdsInd=self.VdIndex)    
                 self.Buffer.Reset()
 
             else:
                 Qt.QThread.msleep(10)
 
-
     def AddData(self, NewData):
         if self.Stable is False:
+            while self.Buffer.IsFilled():
+                continue
             if self.Wait:
                 self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDemod)
                 Diff = self.DelayTime-self.ElapsedTime
-                # print('Fs-->', self.FsDemod)
-                # print('NewData-->',len(NewData[:,0]))
-                # print('ElapsedTime-->', self.ElapsedTime)
-                # print('diff-->',Diff)
                 if Diff <= 0:
                     print('Delay Time finished')
                     self.Wait = False
                     self.ElapsedTime = 0
-                    self.Timer.timeout.connect(self.printTime)
-                    self.Timer.start(self.TimeOut*1000)
+                    self.Timer.singleShot(self.TimeOut*1000, self.printTime)
+                    # self.Timer.timeout.connect(self.printTime)
+                    # self.Timer.start(self.TimeOut*1000)
             else:            
                 self.Buffer.AddData(NewData)
-                self.Datos = self.Buffer  # se guardan los datos para que no se sobreescriban
+               
         if self.ACenable:
             if self.Stable is True:
                 self.threadCalcPSD.AddData(NewData)
@@ -334,37 +328,52 @@ class StbDetThread(Qt.QThread):
     def printTime(self):
         print('TimeOut')
         self.Timer.stop()
-        # self.Timer.timeout.disconnect(self.printTime)
-        self.DCIdCalc()
-
-    def DCIdCalc(self):
-        self.Buffer.Reset()
-        # se activa el flag de estable
+        self.CalcSlope()
         self.Stable = True
-        # se activa el thread para calcular PSD
         if self.ACenable:
             self.threadCalcPSD.start()
-        # se obtiene el punto para cada Row
-        self.DCIds = np.ndarray((self.Datos.shape[1], 1))
-        for ind in range(self.Datos.shape[1]):
-            Data = np.abs(self.Datos[:, ind])
-            x = np.arange(Data.size)
-            self.ptrend = np.polyfit(x, Data, 1)
-
-            self.DCIds[ind] = (self.ptrend[-1])  # Se toma el ultimo valor
-        
-        # Se guardan los valores DC
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
+                                 Dev=self.Dev,
                                  SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex)    
+                                 SwVdsInd=self.VdIndex)  
+        self.Buffer.Reset()
 
+    def CalcSlope(self):
+        self.Dev = np.ndarray((self.Buffer.shape[1],))
+        self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
+        for ChnInd, dat in enumerate(self.Buffer.transpose()):
+            r = len(dat)
+            # x = np.arange(0, r)
+            # mm, oo = np.polyfit(x, dat, 1)
+            t = np.arange(0, (1/self.FsDemod)*r, (1/self.FsDemod))
+            mm = np.polyfit(t, dat, 1)
+            self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
+            self.DCIds[ChnInd] = (mm[-1])  # Se toma el ultimo valor
+        print('Dev',self.Dev)
+               
+        if self.StabCriteria == 'All channels':
+            for slope in self.Dev:
+                if slope > self.MaxSlope:
+                    Stab = -1
+                    break
+            if Stab == -1:
+                self.Stable = False
+            else:
+                self.Stable = True 
+        elif self.StabCriteria == 'One Channel':
+            for slope in self.Dev:
+                if slope < self.MaxSlope:
+                    self.Stable = True
+                    break
+        elif self.StabCriteria == 'Mean':
+            slope = np.mean(self.Dev)
+            if slope < self.MaxSlope:
+                self.Stable = True
+                
     def on_PSDDone(self):
         self.freqs = self.threadCalcPSD.ff
         self.PSDdata = self.threadCalcPSD.psd
-        # se desactiva el thread para calcular PSD
         self.threadCalcPSD.stop()
-        
-        # Se guarda en AC dicts
         self.SaveDCAC.SaveACDict(psd=self.PSDdata,
                                  ff=self.freqs,
                                  SwVgsInd=self.VgIndex,
@@ -413,8 +422,6 @@ class StbDetThread(Qt.QThread):
             self.PlotSwDC.Fig.canvas.draw()  
             
     def stop(self):
-        # self.SaveDCAC.DCSaved.disconnect()
-        # plt.close('all')
         self.Timer.stop()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
@@ -497,10 +504,14 @@ class SaveDicts(QObject):
             self.ChannelIndex[ch] = (index)
             index = index+1
 
-        self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,
-                                             nVgs=SwVgsVals,
-                                             ChNames=self.ChNamesList,
-                                             Gate=Gate)
+        # self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,
+        #                                      nVgs=SwVgsVals,
+        #                                      ChNames=self.ChNamesList,
+        #                                      Gate=Gate)
+        self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
+                                           nVgs=SwVgsVals,
+                                           ChNames=self.ChNamesList,
+                                           Gate=Gate)
         # AC dictionaries
         if ACenable:
             self.PSDnFFT = 2**nFFT
@@ -509,13 +520,62 @@ class SaveDicts(QObject):
             Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
             nFgm = np.array([])
     
-            self.DevACVals = PyData.InitACRecord(nVds=SwVdsVals,
-                                                 nVgs=SwVgsVals,
-                                                 nFgm=nFgm,
-                                                 nFpsd=Fpsd,
-                                                 ChNames=self.ChNamesList)
+            self.DevACVals = self.InitACRecord(nVds=SwVdsVals,
+                                               nVgs=SwVgsVals,
+                                               nFgm=nFgm,
+                                               nFpsd=Fpsd,
+                                               ChNames=self.ChNamesList)
+        
+    def InitDCRecord(self, nVds, nVgs, ChNames, Gate):
 
-    def SaveDCDict(self, Ids, SwVgsInd, SwVdsInd):
+        Time = datetime.datetime.now()
+        DevDCVals={}
+        for Ch in ChNames:
+            DCVals={'Ids':np.ones((len(nVgs),len(nVds)))*np.NaN,
+                    'Dev':np.ones((len(nVgs),len(nVds)))*np.NaN,
+                    'Vds':nVds,
+                    'Vgs':nVgs,
+                    'ChName':Ch,
+                    'Name':Ch,
+                    'DateTime':Time}
+            DevDCVals[Ch]=DCVals
+    
+        if Gate:
+            GateDCVals = {'Ig':np.ones((len(nVgs),len(nVds)))*np.NaN,
+                        'Vds':nVds,
+                        'Vgs':nVgs,
+                        'ChName':'Gate',
+                        'Name':'Gate',
+                        'DateTime':Time}
+            DevDCVals['Gate']=GateDCVals
+    
+        return DevDCVals
+
+    def InitACRecord(self, nVds, nVgs, nFgm, nFpsd, ChNames):
+    
+        Time = datetime.datetime.now()
+        DevACVals={}
+        for Ch in ChNames:
+            noise = {}
+            gm = {}
+            for i in range(nVds.size):
+                noise['Vd{}'.format(i)] = np.ones((len(nVgs),nFpsd.size))*np.NaN
+                gm['Vd{}'.format(i)] = np.ones((len(nVgs),nFgm.size))*np.NaN*np.complex(1)
+    
+            ACVals={'PSD':noise,
+                    'gm':gm,
+                    'Vgs':nVgs,
+                    'Vds':nVds,
+                    'Fpsd':nFpsd,
+                    'Fgm':nFgm,
+                    'ChName':Ch,
+                    'Name':Ch,
+                    'DateTime':Time}
+            DevACVals[Ch]=ACVals
+    
+        return DevACVals
+    
+    def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd):
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
            Ids: array. Contains all the data to be saved in the DC dictionary
@@ -525,6 +585,8 @@ class SaveDicts(QObject):
         for chn, inds in self.ChannelIndex.items():
             self.DevDCVals[chn]['Ids'][SwVgsInd,
                                        SwVdsInd] = Ids[inds]
+            self.DevDCVals[chn]['Dev'][SwVgsInd,
+                                       SwVdsInd] = Dev[inds]
         self.DCSaved.emit()
 
         # print('DCSaved')
