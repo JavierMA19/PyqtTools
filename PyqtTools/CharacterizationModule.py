@@ -346,9 +346,9 @@ class StbDetThread(Qt.QThread):
             # x = np.arange(0, r)
             # mm, oo = np.polyfit(x, dat, 1)
             t = np.arange(0, (1/self.FsDemod)*r, (1/self.FsDemod))
-            mm = np.polyfit(t, dat, 1)
+            mm, oo = np.polyfit(t, dat, 1)
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
-            self.DCIds[ChnInd] = (mm[-1])  # Se toma el ultimo valor
+            self.DCIds[ChnInd] = (oo)
         print('Dev',self.Dev)
                
         if self.StabCriteria == 'All channels':
