@@ -293,6 +293,7 @@ class StbDetThread(Qt.QThread):
             if self.Buffer.IsFilled():
                 self.CalcSlope()
                 if self.Stable:
+                    self.Timer.stop()
                     print('IsStable')
                     if self.ACenable:
                         self.threadCalcPSD.start()
@@ -348,7 +349,7 @@ class StbDetThread(Qt.QThread):
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
         print('Dev',self.Dev)
-               
+        Stab = 0
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
                 if slope > self.MaxSlope:
