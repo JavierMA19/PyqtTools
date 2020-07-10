@@ -240,12 +240,13 @@ class StbDetThread(Qt.QThread):
         '''
 
         super(StbDetThread, self).__init__()
+        # Init threads and flags
         self.threadCalcPSD = None
         self.ToStabData = None
         self.Wait = True
         self.Stable = False
         self.StabTimeOut = False
-        
+        # Define global variables
         self.ACenable = ACenable
         self.StabCriteria = StabCriteria
         self.MaxSlope = MaxSlope
@@ -253,7 +254,7 @@ class StbDetThread(Qt.QThread):
         self.DelayTime = DelayTime
         self.ElapsedTime = 0
         self.FsDemod = PlotterDemodKwargs['Fs']
-
+        # Define global variables for Vg and Vd sweep
         self.VgIndex = 0
         self.VdIndex = 0
         self.VgSweepVals = VgSweep
@@ -262,11 +263,11 @@ class StbDetThread(Qt.QThread):
         self.NextVds =self.VdSweepVals[self.VdIndex]
 
         self.Timer = Qt.QTimer()
-
+        # Define the buffer size
         self.Buffer = PltBuffer2D.Buffer2D(self.FsDemod,
                                            nChannels,
                                            TimeBuffer)
-        
+        #Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
                                   SwVdsVals=VdSweep,
                                   SwVgsVals=VgSweep,
@@ -282,7 +283,7 @@ class StbDetThread(Qt.QThread):
             
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
-            
+        # Define the characterization plots   
         self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
         self.PlotSwDC = PyFETpl.PyFETPlot()
         self.PlotSwDC.AddAxes(self.DCPlotVars)
@@ -308,6 +309,7 @@ class StbDetThread(Qt.QThread):
         if self.Stable is False:
             while self.Buffer.IsFilled():
                 continue
+            
             if self.Wait:
                 self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDemod)
                 Diff = self.DelayTime-self.ElapsedTime
@@ -316,8 +318,6 @@ class StbDetThread(Qt.QThread):
                     self.Wait = False
                     self.ElapsedTime = 0
                     self.Timer.singleShot(self.TimeOut*1000, self.printTime)
-                    # self.Timer.timeout.connect(self.printTime)
-                    # self.Timer.start(self.TimeOut*1000)
             else:            
                 self.Buffer.AddData(NewData)
                
@@ -343,12 +343,10 @@ class StbDetThread(Qt.QThread):
         self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
         for ChnInd, dat in enumerate(self.Buffer.transpose()):
             r = len(dat)
-            # x = np.arange(0, r)
-            # mm, oo = np.polyfit(x, dat, 1)
             t = np.arange(0, (1/self.FsDemod)*r, (1/self.FsDemod))
             mm, oo = np.polyfit(t, dat, 1)
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
-            self.DCIds[ChnInd] = (oo)
+            self.DCIds[ChnInd] = oo
         print('Dev',self.Dev)
                
         if self.StabCriteria == 'All channels':
@@ -392,6 +390,7 @@ class StbDetThread(Qt.QThread):
         else:
             self.VgIndex = 0
             self.NextVgs = self.VgSweepVals[self.VgIndex]
+            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.on_NextVds()
 
     def on_NextVds(self):
@@ -400,7 +399,6 @@ class StbDetThread(Qt.QThread):
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
-            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             print(self.VdIndex)
             self.NextVd.emit()
 
@@ -459,7 +457,6 @@ class CalcPSD(Qt.QThread):
                                           nperseg=self.nFFT,
                                           scaling=self.scaling,
                                           axis=0)
-#                print('PSD DONE EMIT')
                 self.Buffer.Reset()
                 self.PSDDone.emit()
 
@@ -504,10 +501,6 @@ class SaveDicts(QObject):
             self.ChannelIndex[ch] = (index)
             index = index+1
 
-        # self.DevDCVals = PyData.InitDCRecord(nVds=SwVdsVals,
-        #                                      nVgs=SwVgsVals,
-        #                                      ChNames=self.ChNamesList,
-        #                                      Gate=Gate)
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
                                            nVgs=SwVgsVals,
                                            ChNames=self.ChNamesList,
