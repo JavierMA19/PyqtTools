@@ -13,20 +13,28 @@ from PyQt5 import Qt
 import os
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 SaveFilePars = [{'name': 'Save File',
-                 'type': 'action'},
+                 'type': 'action'
+                 },
                 {'name': 'File Path',
                  'type': 'str',
-                 'value': ''},
+                 'value': ''
+                 },
                 {'name': 'MaxSize',
                  'type': 'int',
                  'siPrefix': True,
                  'suffix': 'B',
                  'limits': (1e6, 1e12),
                  'step': 100e6,
-                 'value': 50e6}
+                 'value': 50e6
+                 },
+                {'name': 'Enabled',
+                 'type': 'bool',
+                 'value': False,
+                 },
                 ]
 
 
@@ -95,6 +103,12 @@ class FileBuffer():
 #            print(stat.st_size, self.MaxSize)
             self._initFile()
 
+    def RefreshPlot(self):
+        plt.figure()
+        x, y = self.Dset.shape
+        Time = np.linspace(0, x/self.Fs, x)
+        plt.plot(Time, self.Dset)
+
 
 class DataSavingThread(Qt.QThread):
     def __init__(self, FileName, nChannels, Fs=None, ChnNames=None, 
@@ -118,7 +132,8 @@ class DataSavingThread(Qt.QThread):
     def AddData(self, NewData):
         if self.NewData is not None:
             print('Error Saving !!!!')
-        self.NewData = NewData
+        else:
+            self.NewData = NewData
     
     def stop (self):
         self.FileBuff.h5File.close()
@@ -205,3 +220,32 @@ def ReadArchivo(name):
     """
     with open(name, "rb") as f:
         return pickle.load(f ,encoding = 'latin1')
+
+
+if __name__ == '__main__':
+    import time
+    
+    
+    f = FileBuffer(FileName='test.h5',
+                   MaxSize=50e6,
+                   nChannels=32)
+    
+    
+    
+    samps = np.int64(np.logspace(1, 7, 20))
+    
+    ts = []
+    for s in samps:
+        a = np.ones((s, 32))
+        Told = time.time()
+        f.AddSample(a)       
+        ts.append(time.time() - Told)        
+        
+    print(ts)
+    
+    plt.plot(samps, ts)
+    
+    plt.figure()
+    plt.plot(samps, samps/ts)
+    
+    
