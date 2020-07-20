@@ -630,6 +630,10 @@ class PSDPlotter(Qt.QThread):
         p = self.wind.pgLayout.addPlot()
         p.setLogMode(True, True)
         p.setLabel('bottom', 'Frequency', units='Hz', **labelStyle)
+        p.setDownsampling(auto=True,
+                          # mode='peak',
+                          mode='subsample',
+                          )
         if scaling == 'density':
             p.setLabel('left', ' PSD', units=' V**2/Hz', **labelStyle)
         else:
