@@ -631,7 +631,7 @@ class PSDPlotter(Qt.QThread):
         p.setLogMode(True, True)
         p.setLabel('bottom', 'Frequency', units='Hz', **labelStyle)
         p.setDownsampling(auto=True,
-                          mode='peak',
+                           mode='peak',
                           # mode='subsample',
                           )
         if scaling == 'density':
@@ -665,7 +665,7 @@ class PSDPlotter(Qt.QThread):
                                 axis=0)
                 self.Buffer.Reset()
                 for chn, ch in self.ChannelConf.items():
-                    self.Curves[chn].setData(ff, psd[:, ch['Input']])
+                    self.Curves[chn].setData(ff[1:], psd[1:, ch['Input']])
             else:
                 Qt.QThread.msleep(100)
 

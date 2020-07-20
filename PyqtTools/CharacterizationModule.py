@@ -293,6 +293,7 @@ class StbDetThread(Qt.QThread):
                 self.CalcSlope()
                 if self.Stable:
                     self.Timer.stop()
+                    self.Timer.deleteLater()
                     print('IsStable')
                     if self.ACenable:
                         self.threadCalcPSD.start()
@@ -317,7 +318,11 @@ class StbDetThread(Qt.QThread):
                     print('Delay Time finished')
                     self.Wait = False
                     self.ElapsedTime = 0
-                    self.Timer.singleShot(self.TimeOut*1000, self.printTime)
+                    self.Timer = Qt.QTimer()
+                    self.Timer.timeout.connect(self.printTime)
+                    self.Timer.setSingleShot(True)
+                    self.Timer.start(self.TimeOut*1000)
+                    # self.Timer.singleShot(self.TimeOut*1000, self.printTime)
             else:            
                 self.Buffer.AddData(NewData)
                
@@ -328,6 +333,7 @@ class StbDetThread(Qt.QThread):
     def printTime(self):
         print('TimeOut')
         self.Timer.stop()
+        self.Timer.deleteLater()
         self.CalcSlope()
         self.Stable = True
         if self.ACenable:
@@ -379,6 +385,7 @@ class StbDetThread(Qt.QThread):
                                  )
 
     def on_NextVgs(self):
+        self.Buffer.Reset()
         self.Stable = False
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
@@ -421,6 +428,7 @@ class StbDetThread(Qt.QThread):
             
     def stop(self):
         self.Timer.stop()
+        self.Timer.deleteLater()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
             self.threadCalcPSD.PSDDone.disconnect()
