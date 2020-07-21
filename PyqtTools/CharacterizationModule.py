@@ -501,14 +501,15 @@ class SaveDicts(QObject):
                            5000.0
         '''
         super(SaveDicts, self).__init__()
+        # self.ChNamesList = sorted(Channels)
+        # self.ChannelIndex = {}
+
+        # index = 0
+        # for ch in sorted(Channels):
+        #     self.ChannelIndex[ch] = (index)
+        #     index = index+1
         self.ChNamesList = sorted(Channels)
-        self.ChannelIndex = {}
-
-        index = 0
-        for ch in sorted(Channels):
-            self.ChannelIndex[ch] = (index)
-            index = index+1
-
+        self.ChannelIndex = Channels
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
                                            nVgs=SwVgsVals,
                                            ChNames=self.ChNamesList,
