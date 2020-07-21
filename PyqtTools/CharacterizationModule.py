@@ -427,8 +427,8 @@ class StbDetThread(Qt.QThread):
             self.PlotSwDC.Fig.canvas.draw()  
             
     def stop(self):
-        self.Timer.stop()
-        self.Timer.deleteLater()
+        # self.Timer.stop()
+        # self.Timer.deleteLater()
         if self.threadCalcPSD is not None:
             self.SaveDCAC.PSDSaved.disconnect()
             self.threadCalcPSD.PSDDone.disconnect()
