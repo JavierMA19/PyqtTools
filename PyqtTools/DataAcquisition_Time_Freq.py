@@ -50,6 +50,8 @@ class DataAcquisitionThread(Qt.QThread):
             self.DaqInterface.DataEveryNEvent = self.NewDataTime
         
         if MeaType == 'Freq':
+            #aquí hacer el import del diccionario de canales que toque
+            
             self.DaqInterface = CoreMod.ChannelsConfig(Channels=ScopeChannels,
                                                        Range=AcqVRange,
                                                        Cols=ColChannels,
