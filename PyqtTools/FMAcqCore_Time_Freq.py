@@ -23,7 +23,8 @@ class ChannelsConfig():
     DataEveryNEvent = None
     DataDoneEvent = None
         
-    def __init__(self, Channels, Cols=None, AcqDC=False, AcqAC=False,
+    def __init__(self, Channels, Cols=None,
+                 AcqDC=False, AcqAC=False, AcqDCAC=False,
                  ACGain=1e6, DCGain=10e3, AcqDiff=False, Range=5,
                  aiChannels=None, aoChannels=None, diChannels=None, 
                  doChannels=None, decoder=None, **kwargs):
@@ -35,16 +36,23 @@ class ChannelsConfig():
         
         self.ChNamesList = sorted(Channels)
         
-        self._InitAnalogInputs(aiChannels=aiChannels,
-                               Diff=AcqDiff,
-                               Range=Range,
-                               )
-        
         self.AcqAC = AcqAC
         self.AcqDC = AcqDC
         self.ACGain = ACGain
         self.DCGain = DCGain
         self.DOChannels = doChannels
+        
+        if AcqDCAC:
+            self._InitAnalogInputsDCAC()
+            self._InitAnalogInputsDCAC(aiChannels=aiChannels,
+                                       Diff=AcqDiff,
+                                       Range=Range,
+                                       )
+        else:
+            self._InitAnalogInputs(aiChannels=aiChannels,
+                       Diff=AcqDiff,
+                       Range=Range,
+                       )
         
         if doChannels is not None:
             self.SwitchOut = DaqInt.WriteDigital(Channels=doChannels)
@@ -58,7 +66,7 @@ class ChannelsConfig():
                 for Col in Cols:
                     self.MuxChannelNames.append(Row + Col)
         
-    def _InitAnalogInputs(self, aiChannels, Diff, Range):
+    def _InitAnalogInputs(self, aiChannels, Diff=False, Range=5.0):
         self.ChannelIndex = {}
         InChans = []
 
@@ -79,6 +87,23 @@ class ChannelsConfig():
         
         # events linking
         self.AnalogInputs.EveryNEvent = self.EveryNEventCallBack
+        self.AnalogInputs.DoneEvent = self.DoneEventCallBack
+    
+    def _InitAnalogInputsDCAC(self, aiChannels, Diff=False, Range=5.0):
+        self.ChannelIndex = {}
+        InChans = []
+        InChansAC = []
+
+        index = 0
+        for ch in self.ChNamesList:
+            InChans.append(aiChannels[ch][0])
+            InChansAC.append(aiChannels[ch][1])
+
+            self.ChannelIndex[ch] = (index)
+            index += 1
+
+        self.AnalogInputs = DaqInt.ReadAnalog(InChans=InChans+InChansAC)
+        self.AnalogInputs.EveryNEvent = self.EveryNEventCallBackDCAC
         self.AnalogInputs.DoneEvent = self.DoneEventCallBack
         
     def _InitAnalogOutputs(self, ChVgs, ChVds):
@@ -150,10 +175,17 @@ class ChannelsConfig():
                 _DataEveryNEvent(aiDataAC)
             elif self.AcqDC:
                 _DataEveryNEvent(aiDataDC)
-            
-            else:
-                _DataEveryNEvent(Data)
         
+    def EveryNEventCallBackDCAC(self, Data):
+        _DataEveryNEvent = self.DataEveryNEvent
+        if _DataEveryNEvent is not None:            
+            print('Sending DC DATA')
+            aiDataDC = self._SortChannels(Data[:int(len(Data)/2)], self.ChannelIndex)
+            aiDataDC = (aiDataDC-self.BiasVd) / self.DCGain
+            print('Sending AC DATA')
+            aiDataAC = self._SortChannels(Data[int(len(Data)/2):], self.ChannelIndex)
+            aiDataAC = aiDataAC / self.ACGain
+            _DataEveryNEvent(aiDataDC, aiDataAC)
 
     def DoneEventCallBack(self, Data):
         print('Done callback')
@@ -173,10 +205,12 @@ class ChannelsConfig():
             print('AC')
             self.SetDigitalSignal(Signal=self.ACSwitch)
                        
+        self.Fs = Fs
         if EveryN is None:
-            EveryN = Refresh*Fs # TODO check this
-        self.AnalogInputs.ReadContData(Fs=Fs,
-                                       EverySamps=EveryN)
+            self.EveryN = Refresh*Fs # TODO check this
+            
+        self.AnalogInputs.ReadContData(Fs=self.Fs,
+                                       EverySamps=self.EveryN)
 
     def Stop(self):
         print('Stopppp')
