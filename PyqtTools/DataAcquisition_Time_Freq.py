@@ -6,7 +6,7 @@ Created on Tue Sep  8 09:02:01 2020
 """
 
 from PyQt5 import Qt
-
+import pyqtgraph.parametertree.parameterTypes as pTypes
 import numpy as np
 
 import Pyxi.FMAcqCore_Time_Freq as CoreMod
@@ -253,6 +253,7 @@ class SampSetParam(pTypes.GroupParameter):
 
 class DataAcquisitionThread(Qt.QThread):
     NewMuxData = Qt.pyqtSignal()
+    NewTimeData = Qt.pyqtSignal()
 
     def __init__(self, CarrierConfig=None, ColChannels=None, FsGen=None, 
                  GenSize=None, ScopeChannels=None, FsScope=None, 
