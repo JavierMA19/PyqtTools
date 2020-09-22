@@ -18,7 +18,7 @@ class ChannelsConfig():
     Dec = None
     DCSwitch = np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, ], dtype=np.uint8)
     ACSwitch = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.uint8)
-    DecDigital = np.array([0, 1, 0, 1, 1], dtype=np.uint8) # Ouput should be: P26
+    # DecDigital = np.array([0, 1, 0, 1, 1], dtype=np.uint8) # Ouput should be: P26
     # Events list
     DataEveryNEvent = None
     DataDoneEvent = None

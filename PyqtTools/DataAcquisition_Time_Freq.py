@@ -34,7 +34,7 @@ DOChannels = ['port0/line0:15', ]
 
 DOChannels = ['port0/line0:9', ]
 
-aoChannels = ['ao1', 'ao0']
+aoChannels = ['ao0', 'ao1']
 
 SampSettingConf = ({'title': 'Channels Config',
                     'name': 'ChsConfig',
