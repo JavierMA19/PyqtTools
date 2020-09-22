@@ -43,7 +43,7 @@ class ChannelsConfig():
         self.DOChannels = doChannels
         
         if AcqDCAC:
-            self._InitAnalogInputsDCAC()
+            # self._InitAnalogInputsDCAC()
             self._InitAnalogInputsDCAC(aiChannels=aiChannels,
                                        Diff=AcqDiff,
                                        Range=Range,
@@ -119,7 +119,7 @@ class ChannelsConfig():
     def SetBias(self, Vds, Vgs):
         print('ChannelsConfig SetBias Vgs ->', Vgs, 'Vds ->', Vds)
         self.VdsOut.SetVal(Vds)
-        self.VsOut.SetVal(-Vgs)
+        self.VgsOut.SetVal(-Vgs)
         self.BiasVd = Vds-Vgs
         self.Vgs = Vgs
         self.Vds = Vds
@@ -135,7 +135,8 @@ class ChannelsConfig():
         if not self.SwitchOut:
             self.SwitchOut = DaqInt.WriteDigital(Channels=self.DOChannels)
         self.SwitchOut.SetDigitalSignal(Signal)
-        self.Dec.SetDigitalSignal(self.DecDigital)
+        if self.Dec is not None:
+            self.Dec.SetDigitalSignal(self.DecDigital)
 
     def SetContSignal(self, Signal, nSamps):
         if not self.VgsOut:

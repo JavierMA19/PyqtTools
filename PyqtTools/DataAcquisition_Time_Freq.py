@@ -9,7 +9,8 @@ from PyQt5 import Qt
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import numpy as np
 
-import Pyxi.FMAcqCore_Time_Freq as CoreMod
+# import Pyxi.FMAcqCore_Time_Freq as CoreMod
+import PyqtTools.FMAcqCore_Time_Freq as CoreMod
 
 # estoy habrá que improtarlo de otra manera
 aiChannels = {'Ch09': ('ai0', 'ai8'),
