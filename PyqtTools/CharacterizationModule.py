@@ -207,6 +207,7 @@ class SweepsConfig(pTypes.GroupParameter):
 ################CHARACTERIZATION THREAD#######################################
         
 class StbDetThread(Qt.QThread):
+    DataStab = Qt.pyqtSignal()
     NextVg = Qt.pyqtSignal()
     NextVd = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
@@ -292,6 +293,7 @@ class StbDetThread(Qt.QThread):
             if self.Buffer.IsFilled():
                 self.CalcSlope()
                 if self.Stable:
+                    self.DataStab.emit()
                     self.Timer.stop()
                     self.Timer.deleteLater()
                     print('IsStable')
@@ -336,6 +338,7 @@ class StbDetThread(Qt.QThread):
         self.Timer.deleteLater()
         self.CalcSlope()
         self.Stable = True
+        self.DataStab.emit()
         if self.ACenable:
             self.threadCalcPSD.start()
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
