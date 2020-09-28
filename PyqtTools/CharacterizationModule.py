@@ -278,10 +278,12 @@ class StbDetThread(Qt.QThread):
         print('ACENABLE-->', self.ACenable)
         if self.ACenable:
             print('ACENABLE, CALCPSD')
+            self.PSDPlotVars = ('PSD',)
             self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-            
+            self.PlotSwAC = PyFETpl.PyFETPlot()
+            self.PlotSwAC.AddAxes(self.PSDPlotVars)            
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
         # Define the characterization plots   
@@ -309,6 +311,7 @@ class StbDetThread(Qt.QThread):
                 Qt.QThread.msleep(10)
 
     def AddData(self, NewData):
+        print('NewDataShapeee', NewData.shape)
         if self.Stable is False:
             while self.Buffer.IsFilled():
                 continue
@@ -387,6 +390,7 @@ class StbDetThread(Qt.QThread):
                                  SwVgsInd=self.VgIndex,
                                  SwVdsInd=self.VdIndex
                                  )
+        self.UpdateAcPlots(self.SaveDCAC.DevACVals)
 
     def on_NextVgs(self):
         print('NextVgs')
@@ -431,7 +435,13 @@ class StbDetThread(Qt.QThread):
             self.PlotSwDC.PlotDataCh(Data=Dcdict)
             self.PlotSwDC.AddLegend()
             self.PlotSwDC.Fig.canvas.draw()  
-            
+
+    def UpdateAcPlots(self, Acdict):
+        if self.PlotSwAC:
+            self.PlotSwAC.ClearAxes()
+            self.PlotSwAC.PlotDataCh(Data=Acdict)
+            self.PlotSwAC.Fig.canvas.draw()
+
     def stop(self):
         # self.Timer.stop()
         # self.Timer.deleteLater()
@@ -593,6 +603,7 @@ class SaveDicts(QObject):
            SwVgsInd: int. Is the index of the actual Vg Sweep Iteration
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
+        print(self.ChannelIndex.items())
         for chn, inds in self.ChannelIndex.items():
             self.DevDCVals[chn]['Ids'][SwVgsInd,
                                        SwVdsInd] = Ids[inds]
