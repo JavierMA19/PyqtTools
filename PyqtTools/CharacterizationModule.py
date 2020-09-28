@@ -275,7 +275,9 @@ class StbDetThread(Qt.QThread):
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
                                   FsDemod=self.FsDemod
                                   )
+        print('ACENABLE-->', self.ACenable)
         if self.ACenable:
+            print('ACENABLE, CALCPSD')
             self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
@@ -345,6 +347,7 @@ class StbDetThread(Qt.QThread):
         self.Buffer.Reset()
 
     def CalcSlope(self):
+        print('CalcSlope')
         self.Dev = np.ndarray((self.Buffer.shape[1],))
         self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
         for ChnInd, dat in enumerate(self.Buffer.transpose()):
@@ -353,7 +356,7 @@ class StbDetThread(Qt.QThread):
             mm, oo = np.polyfit(t, dat, 1)
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
-        print('Dev',self.Dev)
+        # print('Dev',self.Dev)
         Stab = 0
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
@@ -375,6 +378,7 @@ class StbDetThread(Qt.QThread):
                 self.Stable = True
                 
     def on_PSDDone(self):
+        print('on_PSDDone')
         self.freqs = self.threadCalcPSD.ff
         self.PSDdata = self.threadCalcPSD.psd
         self.threadCalcPSD.stop()
@@ -385,13 +389,14 @@ class StbDetThread(Qt.QThread):
                                  )
 
     def on_NextVgs(self):
+        print('NextVgs')
         self.Buffer.Reset()
         self.Stable = False
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
             self.Wait = True
-            print(self.VgIndex)
+            # print(self.VgIndex)
             self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.NextVg.emit()
         else:
@@ -401,12 +406,13 @@ class StbDetThread(Qt.QThread):
             self.on_NextVds()
 
     def on_NextVds(self):
+        print('NextVds')
         self.VdIndex += 1
         
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
-            print(self.VdIndex)
+            # print(self.VdIndex)
             self.NextVd.emit()
 
         else:
@@ -448,7 +454,7 @@ class CalcPSD(Qt.QThread):
            scaling: str. Two options, Density or Spectrum
         '''
         super(CalcPSD, self).__init__()
-
+        print('CALCPSD_FUNCTION')
         self.scaling = scaling
         self.nFFT = 2**nFFT
         self.nChannels = nChannels
@@ -460,6 +466,7 @@ class CalcPSD(Qt.QThread):
     def run(self, *args, **kwargs):
         while True:
             if self.Buffer.IsFilled():
+                print('Calculation PSD')
                 self.ff, self.psd = welch(self.Buffer,
                                           fs=self.Fs,
                                           nperseg=self.nFFT,
@@ -473,6 +480,7 @@ class CalcPSD(Qt.QThread):
                 Qt.QThread.msleep(200)
 
     def AddData(self, NewData):
+        print('ADDPSDDATA')
         self.Buffer.AddData(NewData)
 
     def stop(self):
@@ -578,6 +586,7 @@ class SaveDicts(QObject):
         return DevACVals
     
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd):
+        print('SAVE_DCDICT')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
            Ids: array. Contains all the data to be saved in the DC dictionary
@@ -594,6 +603,7 @@ class SaveDicts(QObject):
         # print('DCSaved')
 
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd):
+        print('SAVE_ACDICT')
         '''Function that Saves PSD Data in the AC Dict in the appropiate form
            for database
            psd: array(matrix). Contains all the PSD data to be saved in the AC
@@ -667,7 +677,7 @@ class SaveDicts(QObject):
                                                      Disp,
                                                      Name,
                                                      Cycle)
-#        print(self.FileName)
+        print(self.FileName, '->-> Filename')
         with open(self.FileName, "wb") as f:
             pickle.dump(Dcdict, f)
             if Acdict is not None:
