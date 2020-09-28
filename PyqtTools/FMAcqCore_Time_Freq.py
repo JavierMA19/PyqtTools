@@ -105,7 +105,10 @@ class ChannelsConfig():
         self.AnalogInputs = DaqInt.ReadAnalog(InChans=InChans+InChansAC)
         self.AnalogInputs.EveryNEvent = self.EveryNEventCallBackDCAC
         self.AnalogInputs.DoneEvent = self.DoneEventCallBack
-        
+        print('DC', InChans)
+        print('AC', InChansAC)
+        print('All', InChans+InChansAC)
+        print('ChnInd', self.ChannelIndex)
     def _InitAnalogOutputs(self, ChVgs, ChVds):
         print('ChVgs ->', ChVgs)
         print('ChVds ->', ChVds)
@@ -178,6 +181,7 @@ class ChannelsConfig():
                 _DataEveryNEvent(aiDataDC)
         
     def EveryNEventCallBackDCAC(self, Data):
+        print(Data.shape)
         _DataEveryNEvent = self.DataEveryNEvent
         if _DataEveryNEvent is not None:            
             print('Sending DC DATA')
@@ -215,22 +219,23 @@ class ChannelsConfig():
 
     def Stop(self):
         print('Stopppp')
-        
-        self.AnalogInputs.StopContData()
                 
-        if self.Vds is None:
+        if self.Vds is not None:
+            print('All to 0')
+            self.SetBias(Vgs=0, Vds=0)
+        
+        else:
             self.VgsOut.StopTask()
             self.VgsOut.SetVal(0)
             self.VgsOut.ClearTask()
             self.VgsOut = None
             self.VdsOut.ClearTask()
             self.VdsOut = None
-        
-        else:
-            self.SetBias(Vgs=0, Vds=0)
 
         if self.SwitchOut is not None:
             print('Clear Digital')
             self.SwitchOut.ClearTask()
             self.SwitchOut = None
+        
+        self.AnalogInputs.StopContData()
 
