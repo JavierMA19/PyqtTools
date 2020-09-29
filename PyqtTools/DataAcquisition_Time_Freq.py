@@ -10,7 +10,7 @@ import pyqtgraph.parametertree.parameterTypes as pTypes
 import numpy as np
 
 # import Pyxi.FMAcqCore_Time_Freq as CoreMod
-import PyqtTools.FMAcqCore_Time_Freq as CoreMod
+import PyqtTools.FMAcqCore as CoreMod
 
 SampSettingConf = ({'title': 'Channels Config',
                     'name': 'ChsConfig',
