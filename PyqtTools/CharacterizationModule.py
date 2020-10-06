@@ -275,9 +275,9 @@ class StbDetThread(Qt.QThread):
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
                                   FsDemod=self.FsDemod
                                   )
-        print('ACENABLE-->', self.ACenable)
+        # print('ACENABLE-->', self.ACenable)
         if self.ACenable:
-            print('ACENABLE, CALCPSD')
+            # print('ACENABLE, CALCPSD')
             self.PSDPlotVars = ('PSD',)
             self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
@@ -311,7 +311,7 @@ class StbDetThread(Qt.QThread):
                 Qt.QThread.msleep(10)
 
     def AddData(self, NewData):
-        print('NewDataShapeee', NewData.shape)
+        # print('NewDataShapeee', NewData.shape)
         if self.Stable is False:
             while self.Buffer.IsFilled():
                 continue
@@ -476,7 +476,7 @@ class CalcPSD(Qt.QThread):
     def run(self, *args, **kwargs):
         while True:
             if self.Buffer.IsFilled():
-                print('Calculation PSD')
+                # print('Calculation PSD')
                 self.ff, self.psd = welch(self.Buffer,
                                           fs=self.Fs,
                                           nperseg=self.nFFT,
@@ -490,7 +490,7 @@ class CalcPSD(Qt.QThread):
                 Qt.QThread.msleep(200)
 
     def AddData(self, NewData):
-        print('ADDPSDDATA')
+        # print('ADDPSDDATA')
         self.Buffer.AddData(NewData)
 
     def stop(self):

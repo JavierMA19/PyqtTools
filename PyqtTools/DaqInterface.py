@@ -55,6 +55,7 @@ class ReadAnalog(Daq.Task):
                                          Daq.DAQmx_Val_RSE,
                                          -Range, Range,
                                          Daq.DAQmx_Val_Volts, None)
+                print('SINGLE')
             if Diff is True:
                 self.CreateAIVoltageChan(Dev.format(Ch), "",
                                          Daq.DAQmx_Val_Diff,
