@@ -25,12 +25,7 @@ import PyqtTools.PlotModule as PltBuffer2D
 
 ConfigSweepsParams = {'name': 'SweepsConfig',
                       'type': 'group',
-                    'children': ({'name': 'Start/Stop Sweep',
-                                  # 'title': 'Start Sweep',
-                                  'type': 'action', },
-                                 {'name': 'Pause/ReStart Sweep',
-                                  # 'title': 'Start Sweep',
-                                  'type': 'action', },
+                    'children': (
                                  {'name': 'ACenable',
                                   'title': 'AC Characterization',
                                   'type': 'bool',
@@ -49,7 +44,7 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                                         'suffix': 'V'},
                                                        {'name': 'Vfinal',
                                                         'type': 'float',
-                                                        'value': -0.4,
+                                                        'value': 0.4,
                                                         'siPrefix': True,
                                                         'suffix': 'V'},
                                                        {'name': 'NSweeps',
@@ -62,12 +57,12 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                   'type': 'group',
                                   'children': ({'name': 'Vinit',
                                                 'type': 'float',
-                                                'value': 0.02,
+                                                'value': 0.05,
                                                 'siPrefix': True,
                                                 'suffix': 'VRMS'},
                                                {'name': 'Vfinal',
                                                 'type': 'float',
-                                                'value': 0.2,
+                                                'value': 0.05,
                                                 'siPrefix': True,
                                                 'suffix': 'VRMS'},
                                                {'name': 'NSweeps',
@@ -79,9 +74,7 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                  {'name': 'MaxSlope',
                                   'title': 'Maximum Slope',
                                   'type': 'float',
-                                  'value': 1e-10,
-                                  'siPrefix': True,
-                                  'suffix': 'A/s'},
+                                  'value': 5e-8, },
                                  {'name': 'TimeOut',
                                   'title': 'Max Time for Stabilization',
                                   'type': 'int',
@@ -386,7 +379,6 @@ class StbDetThread(Qt.QThread):
             time = x*(1/np.float32(self.FsDemod))
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
-        # print('Dev',self.Dev)
         self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
         Stab = 0
         if self.StabCriteria == 'All channels':
@@ -566,7 +558,6 @@ class SaveDicts(QObject):
         #     self.ChannelIndex[ch] = (index)
         #     index = index+1
         self.ChNamesList = sorted(Channels)
-        print('self.ChNamesList',self.ChNamesList)
         self.ChannelIndex = Channels
         self.DigColumns = sorted(DigColumns)
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
@@ -644,7 +635,6 @@ class SaveDicts(QObject):
            SwVgsInd: int. Is the index of the actual Vg Sweep Iteration
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
-        print(self.ChannelIndex.items())
         j = 0
         for chn, inds in self.ChannelIndex.items():
             if chn.endswith(self.DigColumns[DigIndex]):
