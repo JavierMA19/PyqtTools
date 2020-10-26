@@ -33,7 +33,7 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                  {'name': 'ACenable',
                                   'title': 'AC Characterization',
                                   'type': 'bool',
-                                  'value': True, },
+                                  'value': False, },
                                  {'name': 'StabCriteria',
                                   'type': 'list',
                                   'values': ['All channels', 'One Channel', 'Mean'],
@@ -53,7 +53,7 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                                         'suffix': 'V'},
                                                        {'name': 'NSweeps',
                                                         'type': 'int',
-                                                        'value': 1,
+                                                        'value': 2,
                                                         'siPrefix': True,
                                                         'suffix': 'Sweeps'},
                                                        )},
@@ -209,11 +209,12 @@ class SweepsConfig(pTypes.GroupParameter):
 class StbDetThread(Qt.QThread):
     NextVg = Qt.pyqtSignal()
     NextVd = Qt.pyqtSignal()
+    NextDigital = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
 
     def __init__(self, ACenable, StabCriteria, VdSweep, VgSweep, MaxSlope, TimeOut, 
-                 TimeBuffer, DelayTime, nChannels, ChnName, PlotterDemodKwargs, 
-                 **kwargs):
+                 TimeBuffer, DelayTime, nChannels, ChnName, DigColumns, 
+                 PlotterDemodKwargs, **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -254,13 +255,17 @@ class StbDetThread(Qt.QThread):
         self.DelayTime = DelayTime
         self.ElapsedTime = 0
         self.FsDemod = PlotterDemodKwargs['Fs']
+        self.DigColumns = sorted(DigColumns)
+        print(self.DigColumns)
         # Define global variables for Vg and Vd sweep
         self.VgIndex = 0
         self.VdIndex = 0
+        self.DigIndex = 0
         self.VgSweepVals = VgSweep
         self.VdSweepVals = VdSweep
         self.NextVgs = self.VgSweepVals[self.VgIndex]
         self.NextVds =self.VdSweepVals[self.VdIndex]
+        
 
         self.Timer = Qt.QTimer()
         # Define the buffer size
@@ -274,6 +279,7 @@ class StbDetThread(Qt.QThread):
                                   SwVdsVals=VdSweep,
                                   SwVgsVals=VgSweep,
                                   Channels=ChnName,
+                                  DigColumns=self.DigColumns,
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
                                   FsDemod=self.FsDemod
                                   )
@@ -285,7 +291,7 @@ class StbDetThread(Qt.QThread):
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
             self.PlotSwAC = PyFETpl.PyFETPlot()
-            self.PlotSwAC.AddAxes(self.PSDPlotVars)            
+            self.PlotSwAC.AddAxes(self.PSDPlotVars)
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
         # Define the characterization plots   
@@ -306,7 +312,8 @@ class StbDetThread(Qt.QThread):
                     self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                              Dev=self.Dev,
                                              SwVgsInd=self.VgIndex,
-                                             SwVdsInd=self.VdIndex)    
+                                             SwVdsInd=self.VdIndex,
+                                             DigIndex=self.DigIndex)    
                 self.Buffer.Reset()
 
             else:
@@ -349,7 +356,8 @@ class StbDetThread(Qt.QThread):
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  Dev=self.Dev,
                                  SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex)  
+                                 SwVdsInd=self.VdIndex,
+                                 DigIndex=self.DigIndex)                                       
         self.Buffer.Reset()
 
     def CalcSlope(self):
@@ -391,7 +399,8 @@ class StbDetThread(Qt.QThread):
         self.SaveDCAC.SaveACDict(psd=self.PSDdata,
                                  ff=self.freqs,
                                  SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex
+                                 SwVdsInd=self.VdIndex,
+                                 DigIndex=self.DigIndex,
                                  )
         self.UpdateAcPlots(self.SaveDCAC.DevACVals)
 
@@ -421,17 +430,27 @@ class StbDetThread(Qt.QThread):
             self.Wait = True
             # print(self.VdIndex)
             self.NextVd.emit()
-
         else:
             self.VdIndex = 0
             self.NextVds = self.VdSweepVals[self.VdIndex]
+            self.on_NextDigital()
+
+    def on_NextDigital(self):
+        print('NextDigital')
+        self.DigIndex += 1
+        if self.DigIndex < len(self.DigColumns):
+            self.NextColumn = self.DigIndex
+            self.Wait = True
+            self.NextDigital.emit()
+        else:
+            self.DigIndex = 0
             self.DCDict = self.SaveDCAC.DevDCVals
             if self.ACenable:
                 self.ACDict = self.SaveDCAC.DevACVals
             else:
                 self.ACDict = None
             self.CharactEnd.emit()
-           
+
     def UpdateSweepDcPlots(self, Dcdict):
         if self.PlotSwDC:
             self.PlotSwDC.ClearAxes()
@@ -506,7 +525,7 @@ class SaveDicts(QObject):
     PSDSaved = Qt.pyqtSignal()
     DCSaved = Qt.pyqtSignal()
 
-    def __init__(self, SwVdsVals, SwVgsVals, Channels,
+    def __init__(self, SwVdsVals, SwVgsVals, Channels, DigColumns, 
                  nFFT, FsDemod, Gate=False, ACenable=True):
         '''Initialize the Dictionaries to Save the Characterization
            SwVdsVals: array. Contains the values for the Vd sweep
@@ -530,7 +549,9 @@ class SaveDicts(QObject):
         #     self.ChannelIndex[ch] = (index)
         #     index = index+1
         self.ChNamesList = sorted(Channels)
+        print('self.ChNamesList',self.ChNamesList)
         self.ChannelIndex = Channels
+        self.DigColumns = sorted(DigColumns)
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
                                            nVgs=SwVgsVals,
                                            ChNames=self.ChNamesList,
@@ -598,7 +619,7 @@ class SaveDicts(QObject):
     
         return DevACVals
     
-    def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd):
+    def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
         print('SAVE_DCDICT')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
@@ -607,16 +628,21 @@ class SaveDicts(QObject):
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
         print(self.ChannelIndex.items())
+        j = 0
         for chn, inds in self.ChannelIndex.items():
-            self.DevDCVals[chn]['Ids'][SwVgsInd,
-                                       SwVdsInd] = Ids[inds]
-            self.DevDCVals[chn]['Dev'][SwVgsInd,
-                                       SwVdsInd] = Dev[inds]
+            if chn.endswith(self.DigColumns[DigIndex]):
+                print(self.DigColumns[DigIndex])
+                self.DevDCVals[chn]['Ids'][SwVgsInd,
+                                           SwVdsInd] = Ids[j]
+                self.DevDCVals[chn]['Dev'][SwVgsInd,
+                                           SwVdsInd] = Dev[j]
+                j += 1
+
         self.DCSaved.emit()
 
         # print('DCSaved')
 
-    def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd):
+    def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd, DigIndex):
         print('SAVE_ACDICT')
         '''Function that Saves PSD Data in the AC Dict in the appropiate form
            for database
@@ -627,11 +653,15 @@ class SaveDicts(QObject):
            SwVgsInd: int. Is the index of the actual Vg Sweep Iteration
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
+
+        j = 0
         for chn, inds in self.ChannelIndex.items():
-            self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
-                    SwVgsInd] = psd[:, inds].flatten()
-            self.DevACVals[chn]['Fpsd'] = ff
-       
+            if chn.endswith(self.DigColumns[DigIndex]):
+                print(self.DigColumns[DigIndex])
+                self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
+                        SwVgsInd] = psd[:, j].flatten()
+                self.DevACVals[chn]['Fpsd'] = ff
+                j += 1
         self.PSDSaved.emit()
 
     def SaveDicts(self, Dcdict, Folder, Oblea, Disp, Name, Cycle, Acdict=None):
