@@ -11,6 +11,7 @@ import datetime
 from scipy.signal import welch
 
 import pyqtgraph.parametertree.parameterTypes as pTypes
+import matplotlib.pyplot as plt
 
 from PyQt5 import Qt
 from PyQt5.QtCore import QObject
@@ -298,6 +299,17 @@ class StbDetThread(Qt.QThread):
         self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
         self.PlotSwDC = PyFETpl.PyFETPlot()
         self.PlotSwDC.AddAxes(self.DCPlotVars)
+        self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
+
+    def UpdateTimeViewPlot(self, Ids, Time, Dev):
+        print(Ids.shape, Time.shape)
+        while self.TimeViewAxs.lines:
+            self.TimeViewAxs.lines[0].remove()
+        self.TimeViewAxs.plot(Time, Ids)
+        self.TimeViewAxs.set_ylim(np.min(Ids), np.max(Ids))
+        self.TimeViewAxs.set_xlim(np.min(Time), np.max(Time))
+        self.TimeViewAxs.set_title(str(Dev))
+        self.TimeViewPlot.canvas.draw()
 
     def run(self):
         while True:
@@ -362,15 +374,20 @@ class StbDetThread(Qt.QThread):
 
     def CalcSlope(self):
         print('CalcSlope')
+        # self.UpdateTimeViewPlot(self, NewData, Time)
         self.Dev = np.ndarray((self.Buffer.shape[1],))
         self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
+
         for ChnInd, dat in enumerate(self.Buffer.transpose()):
             r = len(dat)
+            x = np.arange(0, r)
             t = np.arange(0, (1/self.FsDemod)*r, (1/self.FsDemod))
             mm, oo = np.polyfit(t, dat, 1)
+            time = x*(1/np.float32(self.FsDemod))
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
         # print('Dev',self.Dev)
+        self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
         Stab = 0
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
