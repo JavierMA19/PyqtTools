@@ -208,7 +208,7 @@ class StbDetThread(Qt.QThread):
 
     def __init__(self, ACenable, StabCriteria, VdSweep, VgSweep, MaxSlope, TimeOut, 
                  TimeBuffer, DelayTime, nChannels, ChnName, DigColumns, 
-                 PlotterDemodKwargs, **kwargs):
+                 IndexDigitalLines, PlotterDemodKwargs, **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -260,6 +260,7 @@ class StbDetThread(Qt.QThread):
         self.NextVgs = self.VgSweepVals[self.VgIndex]
         self.NextVds =self.VdSweepVals[self.VdIndex]
         
+        self.EventCalcAC = None
 
         self.Timer = Qt.QTimer()
         # Define the buffer size
@@ -274,6 +275,7 @@ class StbDetThread(Qt.QThread):
                                   SwVgsVals=VgSweep,
                                   Channels=ChnName,
                                   DigColumns=self.DigColumns,
+                                  IndexDigitalLines=IndexDigitalLines,
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
                                   FsDemod=self.FsDemod
                                   )
@@ -295,7 +297,6 @@ class StbDetThread(Qt.QThread):
         self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
 
     def UpdateTimeViewPlot(self, Ids, Time, Dev):
-        print(Ids.shape, Time.shape)
         while self.TimeViewAxs.lines:
             self.TimeViewAxs.lines[0].remove()
         self.TimeViewAxs.plot(Time, Ids)
@@ -343,7 +344,6 @@ class StbDetThread(Qt.QThread):
                     self.Timer.start(self.TimeOut*1000)
                     # self.Timer.singleShot(self.TimeOut*1000, self.printTime)
             else:
-                print('add Data to buffer')
                 self.Buffer.AddData(NewData)
                
         if self.ACenable:
@@ -357,6 +357,9 @@ class StbDetThread(Qt.QThread):
         self.CalcSlope()
         self.Stable = True
         if self.ACenable:
+            # enviar la señal de AC
+            if self.EventCalcAC:
+                self.EventCalcAC(Signal='AC')
             self.threadCalcPSD.start()
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  Dev=self.Dev,
@@ -448,7 +451,7 @@ class StbDetThread(Qt.QThread):
         print('NextDigital')
         self.DigIndex += 1
         if self.DigIndex < len(self.DigColumns):
-            self.NextColumn = self.DigIndex
+            # self.NextColumn = self.DigIndex
             self.Wait = True
             self.NextDigital.emit()
         else:
@@ -534,7 +537,7 @@ class SaveDicts(QObject):
     PSDSaved = Qt.pyqtSignal()
     DCSaved = Qt.pyqtSignal()
 
-    def __init__(self, SwVdsVals, SwVgsVals, Channels, DigColumns, 
+    def __init__(self, SwVdsVals, SwVgsVals, Channels, DigColumns, IndexDigitalLines,
                  nFFT, FsDemod, Gate=False, ACenable=True):
         '''Initialize the Dictionaries to Save the Characterization
            SwVdsVals: array. Contains the values for the Vd sweep
@@ -552,14 +555,15 @@ class SaveDicts(QObject):
         super(SaveDicts, self).__init__()
         # self.ChNamesList = sorted(Channels)
         # self.ChannelIndex = {}
-
+        
         # index = 0
         # for ch in sorted(Channels):
         #     self.ChannelIndex[ch] = (index)
         #     index = index+1
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = Channels
-        self.DigColumns = sorted(DigColumns)
+        self.DigColumns = DigColumns
+        self.IndexDigitalLines = IndexDigitalLines
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
                                            nVgs=SwVgsVals,
                                            ChNames=self.ChNamesList,
@@ -637,14 +641,20 @@ class SaveDicts(QObject):
         '''
         j = 0
         for chn, inds in self.ChannelIndex.items():
-            if chn.endswith(self.DigColumns[DigIndex]):
-                print(self.DigColumns[DigIndex])
+            if self.IndexDigitalLines:
+                if chn.endswith(self.IndexDigitalLines[DigIndex]):         
+                    print(self.DigColumns[DigIndex])
+                    self.DevDCVals[chn]['Ids'][SwVgsInd,
+                                               SwVdsInd] = Ids[j]
+                    self.DevDCVals[chn]['Dev'][SwVgsInd,
+                                               SwVdsInd] = Dev[j]
+                    j += 1
+            else:
                 self.DevDCVals[chn]['Ids'][SwVgsInd,
-                                           SwVdsInd] = Ids[j]
+                                           SwVdsInd] = Ids[inds]
                 self.DevDCVals[chn]['Dev'][SwVgsInd,
-                                           SwVdsInd] = Dev[j]
-                j += 1
-
+                                           SwVdsInd] = Dev[inds]
+                
         self.DCSaved.emit()
 
         # print('DCSaved')
@@ -663,12 +673,17 @@ class SaveDicts(QObject):
 
         j = 0
         for chn, inds in self.ChannelIndex.items():
-            if chn.endswith(self.DigColumns[DigIndex]):
-                print(self.DigColumns[DigIndex])
+            if self.IndexDigitalLines:
+                if chn.endswith(self.IndexDigitalLines[DigIndex]):         
+                    self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
+                            SwVgsInd] = psd[:, j].flatten()
+                    self.DevACVals[chn]['Fpsd'] = ff
+                    j += 1
+            else:
                 self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
-                        SwVgsInd] = psd[:, j].flatten()
+                            SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff
-                j += 1
+
         self.PSDSaved.emit()
 
     def SaveDicts(self, Dcdict, Folder, Oblea, Disp, Name, Cycle, Acdict=None):
