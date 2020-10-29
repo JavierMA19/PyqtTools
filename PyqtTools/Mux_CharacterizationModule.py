@@ -408,6 +408,8 @@ class StbDetThread(Qt.QThread):
         self.freqs = self.threadCalcPSD.ff
         self.PSDdata = self.threadCalcPSD.psd
         self.threadCalcPSD.stop()
+        if self.EventCalcAC:
+            self.EventCalcAC(Signal='DC')
         self.SaveDCAC.SaveACDict(psd=self.PSDdata,
                                  ff=self.freqs,
                                  SwVgsInd=self.VgIndex,
