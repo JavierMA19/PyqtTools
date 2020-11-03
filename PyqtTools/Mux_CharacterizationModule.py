@@ -248,7 +248,8 @@ class StbDetThread(Qt.QThread):
         self.TimeOut = TimeOut
         self.DelayTime = DelayTime
         self.ElapsedTime = 0
-        self.FsDemod = PlotterDemodKwargs['Fs']
+        # self.FsDemod = PlotterDemodKwargs['Fs']
+        self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
         print(self.DigColumns)
         # Define global variables for Vg and Vd sweep
@@ -265,8 +266,7 @@ class StbDetThread(Qt.QThread):
         self.Timer = Qt.QTimer()
         # Define the buffer size
         print('InitBuffer')
-        print('FS=', self.FsDemod, 'nChannels=', nChannels, 'TimeBuffer=', TimeBuffer)
-        self.Buffer = PltBuffer2D.Buffer2D(self.FsDemod,
+        self.Buffer = PltBuffer2D.Buffer2D(self.FsDC,
                                            nChannels,
                                            TimeBuffer)
         #Define DC and AC dictionaries
@@ -277,7 +277,7 @@ class StbDetThread(Qt.QThread):
                                   DigColumns=self.DigColumns,
                                   IndexDigitalLines=IndexDigitalLines,
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
-                                  FsDemod=self.FsDemod
+                                  FsDemod=self.FsDC,    # cambiar a fs AC
                                   )
         # print('ACENABLE-->', self.ACenable)
         if self.ACenable:
@@ -332,7 +332,7 @@ class StbDetThread(Qt.QThread):
                 continue
             
             if self.Wait:
-                self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDemod)
+                self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
                 Diff = self.DelayTime-self.ElapsedTime
                 if Diff <= 0:
                     print('Delay Time finished')
@@ -369,7 +369,7 @@ class StbDetThread(Qt.QThread):
         self.Buffer.Reset()
 
     def CalcSlope(self):
-        print('CalcSlope')
+        print('CalcSlope', 'FSdemod =', self.FsDC)
         # self.UpdateTimeViewPlot(self, NewData, Time)
         self.Dev = np.ndarray((self.Buffer.shape[1],))
         self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
@@ -377,9 +377,9 @@ class StbDetThread(Qt.QThread):
         for ChnInd, dat in enumerate(self.Buffer.transpose()):
             r = len(dat)
             x = np.arange(0, r)
-            t = np.arange(0, (1/self.FsDemod)*r, (1/self.FsDemod))
+            t = np.arange(0, (1/self.FsDC)*r, (1/self.FsDC))
             mm, oo = np.polyfit(t, dat, 1)
-            time = x*(1/np.float32(self.FsDemod))
+            time = x*(1/np.float32(self.FsDC))
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
         self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
