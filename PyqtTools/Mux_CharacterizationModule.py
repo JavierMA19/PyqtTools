@@ -117,6 +117,81 @@ SaveSweepsParams = ({'name': 'SaveSweepConfig',
                                  )
                     })
 
+
+ACParams = {'name': 'ACConfig',
+            'type': 'group',
+            'children': [{'name': 'BodeParams',
+                          'type': 'group',
+                          'children': [{'name': 'CheckBode',
+                                        'type': 'bool',
+                                        'value': False, },
+                                       {'name': 'FreqMin',
+                                        'type': 'float',
+                                        'value': 0.35,
+                                        'step': 0.05,
+                                        'sufix': 'Hz'},
+                                       {'name': 'FreqMax',
+                                        'type': 'float',
+                                        'value': 10e3,
+                                        'step': 1e3,
+                                        'sufix': 'Hz'},
+                                       {'name': 'Arms',
+                                        'type': 'float',
+                                        'value': 0.01,
+                                        'step': 1e-3,
+                                        'sufix': 'V'},
+                                       {'name': 'nAvg',
+                                        'type': 'int',
+                                        'value': 2,
+                                        'step': 1, },
+                                       {'name': 'nFreqs',
+                                        'type': 'int',
+                                        'value': 50,
+                                        'step': 1, },
+                                       {'name': 'Rhardware',
+                                        'type': 'bool',
+                                        'value': False, },
+                                       {'name': 'BodeL Duration',
+                                        'type': 'float',
+                                        'value': 20,
+                                        'sufix': 's',
+                                        'readonly': True},
+                                       {'name': 'BodeH Duration',
+                                        'type': 'float',
+                                        'value': 20,
+                                        'sufix': 's',
+                                        'readonly': True}, ]
+                          },
+                         {'name': 'PSDParams',
+                          'type': 'group',
+                          'children': [{'name': 'CheckPSD',
+                                        'type': 'bool',
+                                        'value': False, },
+                                       {'name': 'Fs',
+                                        'type': 'float',
+                                        'value': 1000,
+                                        'step': 100,
+                                        'sufix': 'Hz'},
+                                       {'name': 'PSDnAvg',
+                                        'type': 'int',
+                                        'value': 2,
+                                        'step': 1, },
+                                       {'name': 'nFFT',
+                                        'type': 'int',
+                                        'value': 12,
+                                        'step': 1, },
+                                       {'name': 'scaling',
+                                        'type': 'list',
+                                        'values': ['density',
+                                                   'spectrum']
+                                        },
+                                       {'name': 'PSD Duration',
+                                        'type': 'float',
+                                        'value': 20,
+                                        'sufix': 's',
+                                        'readonly': True}, ]}, ]}
+
+
 class SweepsConfig(pTypes.GroupParameter):
     def __init__(self, QTparent, **kwargs):
         pTypes.GroupParameter.__init__(self, **kwargs)
@@ -131,7 +206,13 @@ class SweepsConfig(pTypes.GroupParameter):
         self.VgParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.VdParams.sigTreeStateChanged.connect(self.on_Sweeps_Changed)
         self.on_Sweeps_Changed()
+
+        self.addChild(ACParams)
+        self.ACParameters = self.param('ACConfig')
         
+        # PSD Parameters
+        self.PSDParameters = self.ACParameters.param('PSDParams')
+
         self.addChild(SaveSweepsParams)
         self.SvSwParams = self.param('SaveSweepConfig')
         self.SvSwParams.param('Save File').sigActivated.connect(self.FileDialog)
@@ -198,6 +279,16 @@ class SweepsConfig(pTypes.GroupParameter):
 
         return Config  
 
+    def GetPSDParams(self):
+        PSDKwargs = {}
+        CheckPSD = False
+        for p in self.PSDParameters.children():
+            if p.name() == 'CheckPSD':
+                CheckPSD = p.value()
+            else:
+                PSDKwargs[p.name()] = p.value()
+        return PSDKwargs, CheckPSD
+
 ################CHARACTERIZATION THREAD#######################################
         
 class StbDetThread(Qt.QThread):
@@ -260,14 +351,16 @@ class StbDetThread(Qt.QThread):
         self.VdSweepVals = VdSweep
         self.NextVgs = self.VgSweepVals[self.VgIndex]
         self.NextVds =self.VdSweepVals[self.VdIndex]
-        
+        self.nChannels = nChannels
+
         self.EventCalcAC = None
 
         self.Timer = Qt.QTimer()
         # Define the buffer size
         print('InitBuffer')
+        print(PlotterDemodKwargs['nFFT'])
         self.Buffer = PltBuffer2D.Buffer2D(self.FsDC,
-                                           nChannels,
+                                           self.nChannels,
                                            TimeBuffer)
         #Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
@@ -277,13 +370,13 @@ class StbDetThread(Qt.QThread):
                                   DigColumns=self.DigColumns,
                                   IndexDigitalLines=IndexDigitalLines,
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
-                                  FsDemod=self.FsDC,    # cambiar a fs AC
+                                  FsDemod=PlotterDemodKwargs['Fs'],    # cambiar a fs AC
                                   )
         # print('ACENABLE-->', self.ACenable)
         if self.ACenable:
             # print('ACENABLE, CALCPSD')
             self.PSDPlotVars = ('PSD',)
-            self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs)
+            self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
             self.PlotSwAC = PyFETpl.PyFETPlot()
@@ -491,7 +584,9 @@ class StbDetThread(Qt.QThread):
         
 class CalcPSD(Qt.QThread):
     PSDDone = Qt.pyqtSignal()
-    def __init__(self, Fs, nFFT, nAvg, nChannels, scaling, **kwargs):
+    def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling, **kwargs):
+    # def __init__(self, Fs, nFFT, PSDnAvg, scaling, **kwargs):
+    
         '''Initialization of the thread that is used to calculate the PSD
            Fs: float. Sampling Frequency
            nFFT: float.
@@ -505,14 +600,14 @@ class CalcPSD(Qt.QThread):
         self.nFFT = 2**nFFT
         self.nChannels = nChannels
         self.Fs = Fs
-        self.BufferSize = self.nFFT * nAvg
+        self.BufferSize = self.nFFT * PSDnAvg
         self.Buffer = PltBuffer2D.Buffer2D(self.Fs, self.nChannels,
                                            self.BufferSize/self.Fs)
 
     def run(self, *args, **kwargs):
         while True:
             if self.Buffer.IsFilled():
-                # print('Calculation PSD')
+                print('Calculation PSD')
                 self.ff, self.psd = welch(self.Buffer,
                                           fs=self.Fs,
                                           nperseg=self.nFFT,
@@ -526,8 +621,10 @@ class CalcPSD(Qt.QThread):
                 Qt.QThread.msleep(200)
 
     def AddData(self, NewData):
-        # print('ADDPSDDATA')
+        print('ADDPSDDATA')
         self.Buffer.AddData(NewData)
+        # self.UpdateTimeViewPlot(self.Buffer, time, Dev=None)
+
 
     def stop(self):
         self.Buffer.Reset()
