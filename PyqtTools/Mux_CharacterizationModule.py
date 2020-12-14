@@ -10,6 +10,9 @@ import pickle
 import datetime
 from scipy.signal import welch
 
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtGui
+
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import matplotlib.pyplot as plt
 
@@ -390,6 +393,12 @@ class StbDetThread(Qt.QThread):
         self.PlotSwDC.AddAxes(self.DCPlotVars)
         self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
 
+        #####################################################
+        # New Graph plots
+        self.plot = pg.plot()
+
+        #####################################################
+
     def UpdateTimeViewPlot(self, Ids, Time, Dev):
         while self.TimeViewAxs.lines:
             self.TimeViewAxs.lines[0].remove()
@@ -502,8 +511,8 @@ class StbDetThread(Qt.QThread):
         self.freqs = self.threadCalcPSD.ff
         self.PSDdata = self.threadCalcPSD.psd
         self.threadCalcPSD.stop()
-        if self.EventCalcAC:
-            self.EventCalcAC(Signal='DC')
+        # if self.EventCalcAC:
+        #     self.EventCalcAC(Signal='DC')
         self.SaveDCAC.SaveACDict(psd=self.PSDdata,
                                  ff=self.freqs,
                                  SwVgsInd=self.VgIndex,
@@ -511,6 +520,8 @@ class StbDetThread(Qt.QThread):
                                  DigIndex=self.DigIndex,
                                  )
         self.UpdateAcPlots(self.SaveDCAC.DevACVals)
+        if self.EventCalcAC:
+            self.EventCalcAC(Signal='DC')
 
     def on_NextVgs(self):
         print('NextVgs')
@@ -565,6 +576,10 @@ class StbDetThread(Qt.QThread):
             self.PlotSwDC.PlotDataCh(Data=Dcdict)
             self.PlotSwDC.AddLegend()
             self.PlotSwDC.Fig.canvas.draw()  
+        # if self.plot:
+        #     self.plot.ClearAxes()
+        #     self.plot.
+
 
     def UpdateAcPlots(self, Acdict):
         if self.PlotSwAC:
@@ -778,6 +793,7 @@ class SaveDicts(QObject):
                     self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, j].flatten()
                     self.DevACVals[chn]['Fpsd'] = ff
+                    print(chn, DigIndex, j)
                     j += 1
             else:
                 self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
