@@ -23,13 +23,22 @@ class CharactPlotter(Qt.QThread):
 
     def __init__(self, DevDCVals, DevACVals=None):
         super(CharactPlotter, self).__init__()
-        self.Wind = PgPlotWindow()
-        self.Refresh = False
-        self.OldSelCurve = None
 
+        # Init Control variables
+        self.Refresh = False  # Force Refresh in the run loop
+        self.SelCurve = None  # Store curve selected
+        self.OldSelPen = None  # Store the selection Pen for restoring
+        self.VgInd = None  # Vgs Index for PSD refreshing
+        self.VdInd = None  # Vds Index for PSD refreshing
+
+        # Create Plotter window
+        self.Wind = PgPlotWindow()
+        self.Wind.resize(1000, 750)
+        self.Wind.setWindowTitle('Characterization Results')
+        # Create Plots
         self.PlotSel = self.Wind.pgLayout.addPlot(col=0,
-                                                 row=0,
-                                                 )
+                                                  row=0,
+                                                  )
         self.PlotAC = self.Wind.pgLayout.addPlot(col=0,
                                                  row=1,
                                                  )
@@ -38,17 +47,17 @@ class CharactPlotter(Qt.QThread):
                                                  rowspan=2,
                                                  colspan=1,
                                                  )
-
+        # Configure IDS plot
         self.PlotDC.setLabel('left', 'Ids', units='A')
         self.PlotDC.setLabel('bottom', 'Vgs', units='V')
         self.PlotDC.showGrid(x=True, y=True)
-
+        # Configure PSD plot to show the last measured PSDs
         self.PlotAC.setLabel('left', 'PSD [A**2/Hz]')
         self.PlotAC.setLabel('bottom', 'Frequency [Hz]')
         self.PlotAC.getAxis('left').enableAutoSIPrefix(False)
         self.PlotAC.getAxis('bottom').enableAutoSIPrefix(False)
         self.PlotAC.showGrid(x=True, y=True)
-
+        # Configure PSD plot for slection show
         self.PlotSel.setLabel('left', 'PSD [A**2/Hz]')
         self.PlotSel.setLabel('bottom', 'Frequency [Hz]')
         self.PlotSel.getAxis('left').enableAutoSIPrefix(False)
@@ -56,6 +65,7 @@ class CharactPlotter(Qt.QThread):
         self.PlotSel.showGrid(x=True, y=True)
         self.PlotSel.setTitle('No Selection (Click to select)')
 
+        # Data dictionaries
         self.DevDCVals = DevDCVals
         self.DevACVals = DevACVals
         chn = list(self.DevDCVals.keys())[0]
@@ -78,7 +88,7 @@ class CharactPlotter(Qt.QThread):
 
         # Init Ids curves
         T1 = time.time()
-        self.IdsCurves = []
+        self.IdsCurves = []  # Ids curves one for each channel and Vds
         for vdi, vd in enumerate(self.Vds):
             for chn in self.DevDCVals.keys():            
                 c = pg.PlotCurveItem(parent=self.PlotDC,
@@ -88,7 +98,7 @@ class CharactPlotter(Qt.QThread):
                 c.opts['vdi'] = vdi
                 c.opts['vds'] = vd
                 self.IdsCurves.append(c)
-        # Add curves to plot
+        # Add curves to plot and connect event
         for c in self.IdsCurves:
             self.PlotDC.addItem(c)
             c.sigClicked.connect(self.on_IdsClicked)
@@ -97,23 +107,27 @@ class CharactPlotter(Qt.QThread):
         # Init PSD Plot
         T1 = time.time()
         # Init PSD curves
-        self.PSDCurves = []
-        self.SelPSDCurves = []
+        self.PSDCurves = []  # Psd curves one for each channel
+        self.SelPSDCurves = []  # Psd curves one for each vgs and vds
         if self.DevACVals is not None:
             chn = list(self.DevACVals.keys())[0]
             self.Fpsd = self.DevACVals[chn]['Fpsd']
             self.FpsdLog = np.logspace(np.log10(self.Fpsd[1]),
                                        np.log10(self.Fpsd[-2]),
                                        self.PSDInterpolationPoints)
- 
+
             for chn in self.DevACVals.keys():
-                c = pg.PlotDataItem(pen=self.ChPens[chn],
-                                     name=chn)                
+                c = pg.PlotDataItem(parent=self.PlotAC,
+                                    pen=self.ChPens[chn],
+                                    name=chn,                                   
+                                    )
+                c.curve.setClickable(True)
                 self.PSDCurves.append(c)
             for c in self.PSDCurves:
                 self.PlotAC.addItem(c)
+                c.sigClicked.connect(self.on_PSDClicked)
             self.PlotAC.setLogMode(True, True)
-            
+
             for vdi, vd in enumerate(self.Vds):
                 for vgi, vg in enumerate(self.Vgs):
                     c = pg.PlotDataItem(pen=self.VgsPens[vgi],
@@ -125,37 +139,57 @@ class CharactPlotter(Qt.QThread):
                     self.SelPSDCurves.append(c)
             for c in self.SelPSDCurves:
                 self.PlotSel.addItem(c)
-            self.PlotSel.setLogMode(True, True)           
-            
-        print('create + add', time.time() - T1) 
+            self.PlotSel.setLogMode(True, True)
+        print('create + add', time.time() - T1)
+
+    def _restore_selection(self):
+        if self.SelCurve is not None:
+            self.SelCurve.opts['pen'] = self.OldSelPen
+        self.SelCurve = None
 
     def on_IdsClicked(self, SelCur):
+        self.on_CurveClicked(SelCur)
+
+    def on_PSDClicked(self, SelCur):
+        print('PSD sel')
+        self.on_CurveClicked(SelCur)
+
+    def on_CurveClicked(self, SelCur):
+        # Inidcate selection on the title
         chn = SelCur.opts['name']
-        title = 'Selected {} Vds {}'.format(chn,
-                                            SelCur.opts['vds'])
+        if 'vds' in SelCur.opts:
+            sVds = str(SelCur.opts['vds'])
+        else:
+            sVds = 'N.A.'
+        title = 'Selected {} Vds {}'.format(chn, sVds)
         self.PlotSel.setTitle(title)
-        if self.OldSelCurve is not None:
-            self.OldSelCurve.opts['pen'] = self.OldSelPen        
-        self.OldSelCurve = SelCur
+
+        # Restore old selection
+        self._restore_selection()
+
+        # Highligth current selection
+        self.SelCurve = SelCur
         self.OldSelPen = SelCur.opts['pen']
         SelCur.setPen('w', width=3)
 
+        # Plot all PSDs for the selected channel
         data = self.DevACVals[chn]['PSD']
         for c in self.SelPSDCurves:
             sVdi = 'Vd' + str(c.opts['vdi'])
             dat = data[sVdi][c.opts['vgi'], :]
             pltpsd = interpolate.interp1d(self.Fpsd, dat)(self.FpsdLog)
-            c.setData(self.FpsdLog, pltpsd)        
-        
+            c.setData(self.FpsdLog, pltpsd)       
 
     def run(self, *args, **kwargs):
         while True:
-            if self.Refresh:                
+            if self.Refresh:
+                # Plot all Ids curves
                 for c in self.IdsCurves:
                     Ids = self.DevDCVals[c.opts['name']]['Ids']
                     dat = Ids[:, c.opts['vdi']]
-                    c.setData(self.Vgs, dat)                        
+                    c.setData(self.Vgs, dat)
 
+                # Plot PSD for the VdInd and VgInd of all channels
                 sVdi = 'Vd' + str(self.VdInd)
                 for c in self.PSDCurves:
                     chn = c.opts['name']
@@ -189,13 +223,13 @@ class GenerationThread(Qt.QThread):
         # self.Vds = self.DevDCVals[chn]['Vds']
         self.Vgs = self.DevDCVals[chn]['Vgs']
         
-        # nChannels = 8
-        # self.Vds = np.array([0.15, 0.1, 0.05])
-        # self.IdsOffVds = [3, 2, 1]
+        nChannels = 16
+        self.Vds = np.array([0.15, 0.1, 0.05])
+        self.IdsOffVds = [5, 2.5, 1]
 
-        nChannels = 1024
-        self.Vds = np.array([0.05, ])
-        self.IdsOffVds = [1, ]
+        # nChannels = 1024
+        # self.Vds = np.array([0.05, ])
+        # self.IdsOffVds = [1, ]
         
         ChNames = ['Ch' + str(i) for i in range(nChannels)]               
               
@@ -274,7 +308,8 @@ class MainWindow(Qt.QWidget):
         
         print('Init Plotter')
         T1 = time.time()
-        self.CharPlot = CharactPlotter(self.GenData.MeasDC, self.GenData.MeasAC)    
+        self.CharPlot = CharactPlotter(self.GenData.MeasDC,
+                                       self.GenData.MeasAC)    
         print('Init Plotter ', time.time()-T1)
         
         print('Start Threads')
