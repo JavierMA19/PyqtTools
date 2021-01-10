@@ -379,6 +379,7 @@ class Buffer2D(np.ndarray):
 class PgPlotWindow(Qt.QWidget):
     def __init__(self):
         super(PgPlotWindow, self).__init__()
+        self.resize(1000,750)
         layout = Qt.QVBoxLayout(self) #crea el layout
         self.pgLayout = pg.GraphicsLayoutWidget()
         self.pgLayout.setFocusPolicy(Qt.Qt.WheelFocus)
