@@ -20,8 +20,8 @@ from PyQt5 import Qt
 from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QFileDialog
 
-import PyGFETdb.DataStructures as PyData
-import PyGFETdb.PlotDataClass as PyFETpl
+# import PyGFETdb.DataStructures as PyData
+# import PyGFETdb.PlotDataClass as PyFETpl
 import PyqtTools.PlotModule as PltBuffer2D
 
 ################PARAMETER TREE################################################
@@ -170,7 +170,7 @@ ACParams = {'name': 'ACConfig',
                           'type': 'group',
                           'children': [{'name': 'CheckPSD',
                                         'type': 'bool',
-                                        'value': False, },
+                                        'value': True, },
                                        {'name': 'Fs',
                                         'type': 'float',
                                         'value': 1000,
@@ -379,34 +379,34 @@ class StbDetThread(Qt.QThread):
         # print('ACENABLE-->', self.ACenable)
         if self.ACenable:
             # print('ACENABLE, CALCPSD')
-            self.PSDPlotVars = ('PSD',)
+            # self.PSDPlotVars = ('PSD',)
             self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-            self.PlotSwAC = PyFETpl.PyFETPlot()
-            self.PlotSwAC.AddAxes(self.PSDPlotVars)
+            # self.PlotSwAC = PyFETpl.PyFETPlot()
+            # self.PlotSwAC.AddAxes(self.PSDPlotVars)
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
         # Define the characterization plots   
-        self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
-        self.PlotSwDC = PyFETpl.PyFETPlot()
-        self.PlotSwDC.AddAxes(self.DCPlotVars)
-        self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
+        # self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
+        # self.PlotSwDC = PyFETpl.PyFETPlot()
+        # self.PlotSwDC.AddAxes(self.DCPlotVars)
+        # self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
 
         #####################################################
         # New Graph plots
-        self.plot = pg.plot()
+        # self.plot = pg.plot()
 
         #####################################################
 
-    def UpdateTimeViewPlot(self, Ids, Time, Dev):
-        while self.TimeViewAxs.lines:
-            self.TimeViewAxs.lines[0].remove()
-        self.TimeViewAxs.plot(Time, Ids)
-        self.TimeViewAxs.set_ylim(np.min(Ids), np.max(Ids))
-        self.TimeViewAxs.set_xlim(np.min(Time), np.max(Time))
-        self.TimeViewAxs.set_title(str(Dev))
-        self.TimeViewPlot.canvas.draw()
+    # def UpdateTimeViewPlot(self, Ids, Time, Dev):
+    #     while self.TimeViewAxs.lines:
+    #         self.TimeViewAxs.lines[0].remove()
+    #     self.TimeViewAxs.plot(Time, Ids)
+    #     self.TimeViewAxs.set_ylim(np.min(Ids), np.max(Ids))
+    #     self.TimeViewAxs.set_xlim(np.min(Time), np.max(Time))
+    #     self.TimeViewAxs.set_title(str(Dev))
+    #     self.TimeViewPlot.canvas.draw()
 
     def run(self):
         while True:
@@ -485,7 +485,7 @@ class StbDetThread(Qt.QThread):
             time = x*(1/np.float32(self.FsDC))
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
-        self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
+        # self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
         Stab = 0
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
@@ -519,7 +519,7 @@ class StbDetThread(Qt.QThread):
                                  SwVdsInd=self.VdIndex,
                                  DigIndex=self.DigIndex,
                                  )
-        self.UpdateAcPlots(self.SaveDCAC.DevACVals)
+        # self.UpdateAcPlots(self.SaveDCAC.DevACVals)
         if self.EventCalcAC:
             self.EventCalcAC(Signal='DC')
 
@@ -532,12 +532,12 @@ class StbDetThread(Qt.QThread):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
             self.Wait = True
             # print(self.VgIndex)
-            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
+            # self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.NextVg.emit()
         else:
             self.VgIndex = 0
             self.NextVgs = self.VgSweepVals[self.VgIndex]
-            self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
+            # self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.on_NextVds()
 
     def on_NextVds(self):
@@ -570,22 +570,22 @@ class StbDetThread(Qt.QThread):
                 self.ACDict = None
             self.CharactEnd.emit()
 
-    def UpdateSweepDcPlots(self, Dcdict):
-        if self.PlotSwDC:
-            self.PlotSwDC.ClearAxes()
-            self.PlotSwDC.PlotDataCh(Data=Dcdict)
-            self.PlotSwDC.AddLegend()
-            self.PlotSwDC.Fig.canvas.draw()  
-        # if self.plot:
-        #     self.plot.ClearAxes()
-        #     self.plot.
+    # def UpdateSweepDcPlots(self, Dcdict):
+    #     if self.PlotSwDC:
+    #         self.PlotSwDC.ClearAxes()
+    #         self.PlotSwDC.PlotDataCh(Data=Dcdict)
+    #         self.PlotSwDC.AddLegend()
+    #         self.PlotSwDC.Fig.canvas.draw()  
+    #     # if self.plot:
+    #     #     self.plot.ClearAxes()
+    #     #     self.plot.
 
 
-    def UpdateAcPlots(self, Acdict):
-        if self.PlotSwAC:
-            self.PlotSwAC.ClearAxes()
-            self.PlotSwAC.PlotDataCh(Data=Acdict)
-            self.PlotSwAC.Fig.canvas.draw()
+    # def UpdateAcPlots(self, Acdict):
+    #     if self.PlotSwAC:
+    #         self.PlotSwAC.ClearAxes()
+    #         self.PlotSwAC.PlotDataCh(Data=Acdict)
+    #         self.PlotSwAC.Fig.canvas.draw()
 
     def stop(self):
         # self.Timer.stop()

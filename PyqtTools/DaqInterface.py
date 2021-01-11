@@ -176,8 +176,9 @@ class WriteDigital(Daq.Task):
     def SetDigitalSignal(self, Signal):
         print('SetDigitalSignal')
         print('SetDigSignal', Signal, Signal.shape)
-        Sig = np.array(Signal, dtype=np.uint8)
-#        print(Sig, 'SIGNAL')
+        # Sig = np.array(Signal, dtype=np.uint8)
+        Sig = Signal.astype(np.uint8)
+        print(Sig, 'SIGNAL')
         self.WriteDigitalLines(1, 1, 10.0, Daq.DAQmx_Val_GroupByChannel,
                                Sig, None, None)
 
