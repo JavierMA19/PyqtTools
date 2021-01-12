@@ -564,10 +564,13 @@ class StbDetThread(Qt.QThread):
         else:
             self.DigIndex = 0
             self.DCDict = self.SaveDCAC.DevDCVals
+            print('ACenabe_muxcharact')
+            print(self.ACenable)
             if self.ACenable:
                 self.ACDict = self.SaveDCAC.DevACVals
             else:
                 self.ACDict = None
+            print('x')
             self.CharactEnd.emit()
 
     # def UpdateSweepDcPlots(self, Dcdict):

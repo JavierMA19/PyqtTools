@@ -70,7 +70,7 @@ class CharactPlotter(Qt.QThread):
         self.DevACVals = DevACVals
         chn = list(self.DevDCVals.keys())[0]
         self.Vds = self.DevDCVals[chn]['Vds']
-        self.Vgs = self.DevACVals[chn]['Vgs']
+        self.Vgs = self.DevDCVals[chn]['Vgs']
 
         # Create channels pen dictionary
         nChannels = len(self.DevDCVals)
