@@ -343,7 +343,6 @@ class StbDetThread(Qt.QThread):
         self.TimeOut = TimeOut
         self.DelayTime = DelayTime
         self.ElapsedTime = 0
-        # self.FsDemod = PlotterDemodKwargs['Fs']
         self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
         print(self.DigColumns)
@@ -376,37 +375,15 @@ class StbDetThread(Qt.QThread):
                                   nFFT=int(PlotterDemodKwargs['nFFT']),
                                   FsDemod=PlotterDemodKwargs['Fs'],    # cambiar a fs AC
                                   )
-        # print('ACENABLE-->', self.ACenable)
         if self.ACenable:
-            # print('ACENABLE, CALCPSD')
-            # self.PSDPlotVars = ('PSD',)
             self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-            # self.PlotSwAC = PyFETpl.PyFETPlot()
-            # self.PlotSwAC.AddAxes(self.PSDPlotVars)
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
-        # Define the characterization plots   
-        # self.DCPlotVars = ('Ids', 'Rds', 'Gm', 'Ig')
-        # self.PlotSwDC = PyFETpl.PyFETPlot()
-        # self.PlotSwDC.AddAxes(self.DCPlotVars)
         # self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
 
-        #####################################################
-        # New Graph plots
-        # self.plot = pg.plot()
 
-        #####################################################
-
-    # def UpdateTimeViewPlot(self, Ids, Time, Dev):
-    #     while self.TimeViewAxs.lines:
-    #         self.TimeViewAxs.lines[0].remove()
-    #     self.TimeViewAxs.plot(Time, Ids)
-    #     self.TimeViewAxs.set_ylim(np.min(Ids), np.max(Ids))
-    #     self.TimeViewAxs.set_xlim(np.min(Time), np.max(Time))
-    #     self.TimeViewAxs.set_title(str(Dev))
-    #     self.TimeViewPlot.canvas.draw()
 
     def run(self):
         while True:
@@ -429,7 +406,6 @@ class StbDetThread(Qt.QThread):
                 Qt.QThread.msleep(10)
 
     def AddData(self, NewData):
-        # print('NewDataShapeee', NewData.shape)
         if self.Stable is False:
             while self.Buffer.IsFilled():
                 continue
@@ -473,7 +449,6 @@ class StbDetThread(Qt.QThread):
 
     def CalcSlope(self):
         print('CalcSlope', 'FSdemod =', self.FsDC)
-        # self.UpdateTimeViewPlot(self, NewData, Time)
         self.Dev = np.ndarray((self.Buffer.shape[1],))
         self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
 
@@ -485,7 +460,6 @@ class StbDetThread(Qt.QThread):
             time = x*(1/np.float32(self.FsDC))
             self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
             self.DCIds[ChnInd] = oo
-        # self.UpdateTimeViewPlot(self.Buffer, time, np.mean(self.Dev))
         Stab = 0
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
@@ -511,15 +485,12 @@ class StbDetThread(Qt.QThread):
         self.freqs = self.threadCalcPSD.ff
         self.PSDdata = self.threadCalcPSD.psd
         self.threadCalcPSD.stop()
-        # if self.EventCalcAC:
-        #     self.EventCalcAC(Signal='DC')
-        self.SaveDCAC.SaveACDict(psd=self.PSDdata,
+       self.SaveDCAC.SaveACDict(psd=self.PSDdata,
                                  ff=self.freqs,
                                  SwVgsInd=self.VgIndex,
                                  SwVdsInd=self.VdIndex,
                                  DigIndex=self.DigIndex,
                                  )
-        # self.UpdateAcPlots(self.SaveDCAC.DevACVals)
         if self.EventCalcAC:
             self.EventCalcAC(Signal='DC')
 
@@ -531,13 +502,10 @@ class StbDetThread(Qt.QThread):
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
             self.Wait = True
-            # print(self.VgIndex)
-            # self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.NextVg.emit()
         else:
             self.VgIndex = 0
             self.NextVgs = self.VgSweepVals[self.VgIndex]
-            # self.UpdateSweepDcPlots(self.SaveDCAC.DevDCVals)
             self.on_NextVds()
 
     def on_NextVds(self):
@@ -547,7 +515,6 @@ class StbDetThread(Qt.QThread):
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
-            # print(self.VdIndex)
             self.NextVd.emit()
         else:
             self.VdIndex = 0
@@ -573,23 +540,6 @@ class StbDetThread(Qt.QThread):
             print('x')
             self.CharactEnd.emit()
 
-    # def UpdateSweepDcPlots(self, Dcdict):
-    #     if self.PlotSwDC:
-    #         self.PlotSwDC.ClearAxes()
-    #         self.PlotSwDC.PlotDataCh(Data=Dcdict)
-    #         self.PlotSwDC.AddLegend()
-    #         self.PlotSwDC.Fig.canvas.draw()  
-    #     # if self.plot:
-    #     #     self.plot.ClearAxes()
-    #     #     self.plot.
-
-
-    # def UpdateAcPlots(self, Acdict):
-    #     if self.PlotSwAC:
-    #         self.PlotSwAC.ClearAxes()
-    #         self.PlotSwAC.PlotDataCh(Data=Acdict)
-    #         self.PlotSwAC.Fig.canvas.draw()
-
     def stop(self):
         # self.Timer.stop()
         # self.Timer.deleteLater()
@@ -604,7 +554,6 @@ class StbDetThread(Qt.QThread):
 class CalcPSD(Qt.QThread):
     PSDDone = Qt.pyqtSignal()
     def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling, **kwargs):
-    # def __init__(self, Fs, nFFT, PSDnAvg, scaling, **kwargs):
     
         '''Initialization of the thread that is used to calculate the PSD
            Fs: float. Sampling Frequency
@@ -642,8 +591,6 @@ class CalcPSD(Qt.QThread):
     def AddData(self, NewData):
         print('ADDPSDDATA')
         self.Buffer.AddData(NewData)
-        # self.UpdateTimeViewPlot(self.Buffer, time, Dev=None)
-
 
     def stop(self):
         self.Buffer.Reset()
@@ -671,13 +618,7 @@ class SaveDicts(QObject):
                            5000.0
         '''
         super(SaveDicts, self).__init__()
-        # self.ChNamesList = sorted(Channels)
-        # self.ChannelIndex = {}
-        
-        # index = 0
-        # for ch in sorted(Channels):
-        #     self.ChannelIndex[ch] = (index)
-        #     index = index+1
+
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = Channels
         self.DigColumns = DigColumns
