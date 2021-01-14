@@ -300,6 +300,7 @@ class StbDetThread(Qt.QThread):
     NextVd = Qt.pyqtSignal()
     NextDigital = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
+    RefreshPlots = Qt.pyqtSignal()
 
     def __init__(self, ACenable, StabCriteria, VdSweep, VgSweep, MaxSlope, TimeOut, 
                  TimeBuffer, DelayTime, nChannels, ChnName, DigColumns, 
@@ -382,7 +383,8 @@ class StbDetThread(Qt.QThread):
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
         # self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
-
+        self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
+        self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
 
 
     def run(self):
@@ -390,6 +392,7 @@ class StbDetThread(Qt.QThread):
             if self.Buffer.IsFilled():
                 self.CalcSlope()
                 if self.Stable:
+                    # self.CalcSlope()
                     self.Timer.stop()
                     self.Timer.deleteLater()
                     print('IsStable')
@@ -515,7 +518,7 @@ class StbDetThread(Qt.QThread):
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
-            self.NextVd.emit()
+            self.NexSAVE_DCDICTtVd.emit()
         else:
             self.VdIndex = 0
             self.NextVds = self.VdSweepVals[self.VdIndex]
@@ -539,6 +542,10 @@ class StbDetThread(Qt.QThread):
                 self.ACDict = None
             print('x')
             self.CharactEnd.emit()
+
+    def on_refreshPlots(self):
+        print('on_refreshplots')
+        self.RefreshPlots.emit()
 
     def stop(self):
         # self.Timer.stop()
@@ -702,7 +709,7 @@ class SaveDicts(QObject):
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
                 if chn.endswith(self.IndexDigitalLines[DigIndex]):         
-                    print(self.DigColumns[DigIndex])
+                    print(self.IndexDigitalLines[DigIndex])
                     self.DevDCVals[chn]['Ids'][SwVgsInd,
                                                SwVdsInd] = Ids[j]
                     self.DevDCVals[chn]['Dev'][SwVgsInd,
@@ -804,8 +811,8 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-        with open(self.FileName, "wb") as f:
-            pickle.dump(Dcdict, f)
-            if Acdict is not None:
-                pickle.dump(Acdict, f)
+        # with open(self.FileName, "wb") as f:
+        #     pickle.dump(Dcdict, f)
+        #     if Acdict is not None:
+        #         pickle.dump(Acdict, f)
         print('Saved')

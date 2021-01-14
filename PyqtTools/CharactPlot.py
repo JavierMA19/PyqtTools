@@ -203,6 +203,7 @@ class CharactPlotter(Qt.QThread):
 
 
     def RefreshPlot(self, VgInd, VdInd):
+        print('RefreshPlot')
         if self.Refresh:
             print('overlap')
         self.Refresh = True
