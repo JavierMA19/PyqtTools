@@ -14,7 +14,6 @@ import numpy as np
 
 
 def GetDevName():
-#    print('ReadAnalog GetDevName')
     # Get Device Name of Daq Card
     n = 1024
     buff = ctypes.create_string_buffer(n)
@@ -84,7 +83,6 @@ class ReadAnalog(Daq.Task):
         self.ContSamps = False
 
     def EveryNCallback(self):
-#        print('Every')
         read = c_int32()
         data = np.zeros((self.EverySamps, len(self.Channels)))
         self.ReadAnalogF64(self.EverySamps, 10.0,
@@ -97,7 +95,6 @@ class ReadAnalog(Daq.Task):
             self.data = np.vstack((self.data, data))
 
         if self.EveryNEvent:
-#            print('Call')
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):
@@ -118,6 +115,7 @@ class WriteAnalog(Daq.Task):
     '''
     Class to write data to Daq card
     '''
+
     def __init__(self, Channels):
         Daq.Task.__init__(self)
         Dev = GetDevName()
@@ -163,6 +161,7 @@ class WriteDigital(Daq.Task):
     '''
     Class to write data to Daq card
     '''
+
     def __init__(self, Channels):
         Daq.Task.__init__(self)
         Dev = GetDevName()
@@ -183,7 +182,6 @@ class WriteDigital(Daq.Task):
                                Sig, None, None)
 
     def SetContSignal(self, Signal):
-#        print('SetContSignal')
         read = c_int32()
         self.CfgSampClkTiming('ai/SampleClock', 1, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_ContSamps, Signal.shape[1])

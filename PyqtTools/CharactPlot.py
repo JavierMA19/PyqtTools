@@ -13,7 +13,7 @@ from PyQt5 import Qt
 from PyQt5 import QtGui
 import PyGFETdb.DataStructures as FetStruct
 import numpy as np
-import itertools 
+import itertools
 import time
 from scipy import interpolate
 
@@ -90,11 +90,11 @@ class CharactPlotter(Qt.QThread):
         T1 = time.time()
         self.IdsCurves = []  # Ids curves one for each channel and Vds
         for vdi, vd in enumerate(self.Vds):
-            for chn in self.DevDCVals.keys():            
+            for chn in self.DevDCVals.keys():
                 c = pg.PlotCurveItem(parent=self.PlotDC,
                                      pen=self.ChPens[chn],
                                      clickable=True,
-                                     name=chn)   
+                                     name=chn)
                 c.opts['vdi'] = vdi
                 c.opts['vds'] = vd
                 self.IdsCurves.append(c)
@@ -119,7 +119,7 @@ class CharactPlotter(Qt.QThread):
             for chn in self.DevACVals.keys():
                 c = pg.PlotDataItem(parent=self.PlotAC,
                                     pen=self.ChPens[chn],
-                                    name=chn,                                   
+                                    name=chn,
                                     )
                 c.curve.setClickable(True)
                 self.PSDCurves.append(c)
@@ -178,7 +178,7 @@ class CharactPlotter(Qt.QThread):
             sVdi = 'Vd' + str(c.opts['vdi'])
             dat = data[sVdi][c.opts['vgi'], :]
             pltpsd = interpolate.interp1d(self.Fpsd, dat)(self.FpsdLog)
-            c.setData(self.FpsdLog, pltpsd)       
+            c.setData(self.FpsdLog, pltpsd)
 
     def run(self, *args, **kwargs):
         while True:
@@ -201,7 +201,6 @@ class CharactPlotter(Qt.QThread):
             else:
                 Qt.QThread.msleep(100)
 
-
     def RefreshPlot(self, VgInd, VdInd):
         print('RefreshPlot')
         if self.Refresh:
@@ -216,14 +215,14 @@ class GenerationThread(Qt.QThread):
 
     def __init__(self):
         super(GenerationThread, self).__init__()
-        
+
         TestFile = open('../Test/TestData.pkl', 'rb')
         self.DevDCVals, self.DevACVals = pickle.load(TestFile, encoding='latin')
-        
+
         chn = list(self.DevDCVals.keys())[0]
         # self.Vds = self.DevDCVals[chn]['Vds']
         self.Vgs = self.DevDCVals[chn]['Vgs']
-        
+
         nChannels = 16
         self.Vds = np.array([0.15, 0.1, 0.05])
         self.IdsOffVds = [5, 2.5, 1]
@@ -231,9 +230,9 @@ class GenerationThread(Qt.QThread):
         # nChannels = 1024
         # self.Vds = np.array([0.05, ])
         # self.IdsOffVds = [1, ]
-        
-        ChNames = ['Ch' + str(i) for i in range(nChannels)]               
-              
+
+        ChNames = ['Ch' + str(i) for i in range(nChannels)]
+
         self.IdsRnd = {}
         for Chn in ChNames:
             self.IdsRnd[Chn] = np.random.rand()*2e-6
@@ -241,7 +240,7 @@ class GenerationThread(Qt.QThread):
         self.PSDRnd = {}
         for Chn in ChNames:
             self.PSDRnd[Chn] = np.random.rand()*1e-19
-        
+
         self.MeasDC = FetStruct.InitDCRecord(nVds=self.Vds,
                                              nVgs=self.Vgs,
                                              ChNames=ChNames,
@@ -254,7 +253,7 @@ class GenerationThread(Qt.QThread):
                                              nFpsd=self.Fpsd,
                                              nFgm=np.array([]),
                                              )
-        
+
     def run(self):
         '''
         Run function in threads is the loop that will start when thread is
@@ -265,28 +264,27 @@ class GenerationThread(Qt.QThread):
         None.
 
         '''
-    
+
         for vdi, vd in enumerate(self.Vds):
             sVdi = 'Vd' + str(vdi)
             for vgi, vg in enumerate(self.Vgs):
                 DCvals = itertools.cycle([data for chn, data in self.DevDCVals.items()])
                 ACvals = itertools.cycle([data for chn, data in self.DevACVals.items()])
-                
+
                 for chn, data in self.MeasDC.items():
                     ids = next(DCvals)['Ids'][vgi, 0]
                     ids = (ids + self.IdsRnd[chn]) * self.IdsOffVds[vdi]
                     self.MeasDC[chn]['Ids'][vgi, vdi] = ids
-      
+
                 for chn, data in self.MeasAC.items():
                     psd = next(ACvals)['PSD']['Vd0'][vgi, :]
                     psd = (psd + self.PSDRnd[chn])
                     self.MeasAC[chn]['PSD'][sVdi][vgi, :] = psd
-    
+
                 self.VgInd = vgi
                 self.VdInd = vdi
                 self.NewGenData.emit()
                 Qt.QThread.msleep(5000)
-                
 
 
 class MainWindow(Qt.QWidget):
@@ -301,42 +299,31 @@ class MainWindow(Qt.QWidget):
         self.btnStart.clicked.connect(self.on_btnStart)
 
     def on_btnStart(self):
-        print('Init Generation')        
+        print('Init Generation')
         T1 = time.time()
         self.GenData = GenerationThread()
         self.GenData.NewGenData.connect(self.NewData)
         print('Init Generation ', time.time()-T1)
-        
+
         print('Init Plotter')
         T1 = time.time()
         self.CharPlot = CharactPlotter(self.GenData.MeasDC,
-                                       self.GenData.MeasAC)    
+                                       self.GenData.MeasAC)
         print('Init Plotter ', time.time()-T1)
-        
+
         print('Start Threads')
-        self.CharPlot.start()        
+        self.CharPlot.start()
         self.GenData.start()
 
     def NewData(self):
         print('NewData')
         self.CharPlot.RefreshPlot(VgInd=self.GenData.VgInd,
                                   VdInd=self.GenData.VdInd)
-        
-        
-           
+
+
 if __name__ == '__main__':
-   
+
     app = Qt.QApplication([])
     mw = MainWindow()
     mw.show()
-    app.exec_()  
-
-    
-
-    
-
-
-    
-
-
-
+    app.exec_()

@@ -24,18 +24,19 @@ from PyQt5.QtWidgets import QFileDialog
 # import PyGFETdb.PlotDataClass as PyFETpl
 import PyqtTools.PlotModule as PltBuffer2D
 
-################PARAMETER TREE################################################
 
 ConfigSweepsParams = {'name': 'SweepsConfig',
                       'type': 'group',
-                    'children': (
+                      'children': (
                                  # {'name': 'ACenable',
                                  #  'title': 'AC Characterization',
                                  #  'type': 'bool',
                                  #  'value': False, },
                                  {'name': 'StabCriteria',
                                   'type': 'list',
-                                  'values': ['All channels', 'One Channel', 'Mean'],
+                                  'values': ['All channels',
+                                             'One Channel',
+                                             'Mean'],
                                   'value': 'Mean',
                                   'visible': True},
                                  {'name': 'VgSweep',
@@ -99,26 +100,27 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                  )}
 
 SaveSweepsParams = ({'name': 'SaveSweepConfig',
-                    'type': 'group',
-                    'children': ({'name': 'Save File',
-                                  'type': 'action'},
-                                 {'name': 'Folder',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Oblea',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Disp',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Name',
-                                  'type': 'str',
-                                  'value': ''},
-                                 {'name': 'Cycle',
-                                  'type': 'int',
-                                  'value': 0},
-                                 )
-                    })
+                     'type': 'group',
+                     'children': ({'name': 'Save File',
+                                   'type': 'action'},
+                                  {'name': 'Folder',
+                                   'type': 'str',
+                                   'value': ''},
+                                  {'name': 'Oblea',
+                                   'type': 'str',
+                                   'value': ''},
+                                  {'name': 'Disp',
+                                   'type': 'str',
+                                   'value': ''},
+                                  {'name': 'Name',
+                                   'type': 'str',
+                                   'value': ''},
+                                  {'name': 'Cycle',
+                                   'type': 'int',
+                                   'value': 0},
+                                  )
+                     }
+                    )
 
 
 ACParams = {'name': 'ACConfig',
@@ -200,7 +202,7 @@ class SweepsConfig(pTypes.GroupParameter):
     def __init__(self, QTparent, **kwargs):
         pTypes.GroupParameter.__init__(self, **kwargs)
         self.QTparent = QTparent
-        
+
         self.addChild(ConfigSweepsParams)
         self.SwConfig = self.param('SweepsConfig')
 
@@ -213,7 +215,7 @@ class SweepsConfig(pTypes.GroupParameter):
 
         self.addChild(ACParams)
         self.ACParameters = self.param('ACConfig')
-        
+
         # PSD Parameters
         self.PSDParameters = self.ACParameters.param('PSDParams')
 
@@ -239,7 +241,7 @@ class SweepsConfig(pTypes.GroupParameter):
 
     def FilePath(self):
         return self.param('Folder').value()
-    
+
     def GetConfigSweepsParams(self):
         '''Returns de parameters to do the sweeps
            SwConfig={'Enable': True,
@@ -263,7 +265,7 @@ class SweepsConfig(pTypes.GroupParameter):
                 continue
             SwConfig[Config.name()] = Config.value()
         return SwConfig
-    
+
     def GetSaveSweepsParams(self):
         '''Returns de parameters to save the caracterization
            Config={'Folder': 'C:/Users/Lucia/Dropbox (ICN2 AEMD - GAB GBIO)/
@@ -281,7 +283,7 @@ class SweepsConfig(pTypes.GroupParameter):
                 continue
             Config[Conf.name()] = Conf.value()
 
-        return Config  
+        return Config
 
     def GetPSDParams(self):
         PSDKwargs = {}
@@ -293,8 +295,9 @@ class SweepsConfig(pTypes.GroupParameter):
                 PSDKwargs[p.name()] = p.value()
         return PSDKwargs, CheckPSD
 
-################CHARACTERIZATION THREAD#######################################
-        
+################CHARACTERIZATION THREAD#######################
+
+
 class StbDetThread(Qt.QThread):
     NextVg = Qt.pyqtSignal()
     NextVd = Qt.pyqtSignal()
@@ -302,9 +305,11 @@ class StbDetThread(Qt.QThread):
     CharactEnd = Qt.pyqtSignal()
     RefreshPlots = Qt.pyqtSignal()
 
-    def __init__(self, ACenable, StabCriteria, VdSweep, VgSweep, MaxSlope, TimeOut, 
-                 TimeBuffer, DelayTime, nChannels, ChnName, DigColumns, 
-                 IndexDigitalLines, PlotterDemodKwargs, **kwargs):
+    def __init__(self, ACenable, StabCriteria, VdSweep,
+                 VgSweep, MaxSlope, TimeOut, TimeBuffer,
+                 DelayTime, nChannels, ChnName, DigColumns,
+                 IndexDigitalLines, PSDKwargs,
+                 **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
@@ -322,7 +327,7 @@ class StbDetThread(Qt.QThread):
                                 {'Ch04Col1': 0,
                                 'Ch05Col1': 1,
                                 'Ch06Col1': 2}
-           PlotterDemodKwargs: dictionary. Contains Demodulation Configuration
+           PSDKwargs: dictionary. Contains Demodulation Configuration
                                            an parameters
                                            {'Fs': 5000.0,
                                            'nFFT': 8.0,
@@ -346,7 +351,7 @@ class StbDetThread(Qt.QThread):
         self.ElapsedTime = 0
         self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
-        print(self.DigColumns)
+
         # Define global variables for Vg and Vd sweep
         self.VgIndex = 0
         self.VdIndex = 0
@@ -354,7 +359,7 @@ class StbDetThread(Qt.QThread):
         self.VgSweepVals = VgSweep
         self.VdSweepVals = VdSweep
         self.NextVgs = self.VgSweepVals[self.VgIndex]
-        self.NextVds =self.VdSweepVals[self.VdIndex]
+        self.NextVds = self.VdSweepVals[self.VdIndex]
         self.nChannels = nChannels
 
         self.EventCalcAC = None
@@ -362,30 +367,33 @@ class StbDetThread(Qt.QThread):
         self.Timer = Qt.QTimer()
         # Define the buffer size
         print('InitBuffer')
-        print(PlotterDemodKwargs['nFFT'])
         self.Buffer = PltBuffer2D.Buffer2D(self.FsDC,
                                            self.nChannels,
                                            TimeBuffer)
-        #Define DC and AC dictionaries
+        # Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
                                   SwVdsVals=VdSweep,
                                   SwVgsVals=VgSweep,
                                   Channels=ChnName,
                                   DigColumns=self.DigColumns,
                                   IndexDigitalLines=IndexDigitalLines,
-                                  nFFT=int(PlotterDemodKwargs['nFFT']),
-                                  FsDemod=PlotterDemodKwargs['Fs'],    # cambiar a fs AC
+                                  nFFT=int(PSDKwargs['nFFT']),
+                                  FsDemod=PSDKwargs['Fs'],
                                   )
         if self.ACenable:
-            self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
+            self.threadCalcPSD = CalcPSD(**PSDKwargs,
+                                         nChannels=self.nChannels)
             self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
+<<<<<<< Updated upstream
         # self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
         self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
         self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
 
+=======
+>>>>>>> Stashed changes
 
     def run(self):
         while True:
@@ -402,7 +410,7 @@ class StbDetThread(Qt.QThread):
                                              Dev=self.Dev,
                                              SwVgsInd=self.VgIndex,
                                              SwVdsInd=self.VdIndex,
-                                             DigIndex=self.DigIndex)    
+                                             DigIndex=self.DigIndex)
                 self.Buffer.Reset()
 
             else:
@@ -412,7 +420,7 @@ class StbDetThread(Qt.QThread):
         if self.Stable is False:
             while self.Buffer.IsFilled():
                 continue
-            
+
             if self.Wait:
                 self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
                 Diff = self.DelayTime-self.ElapsedTime
@@ -427,7 +435,7 @@ class StbDetThread(Qt.QThread):
                     # self.Timer.singleShot(self.TimeOut*1000, self.printTime)
             else:
                 self.Buffer.AddData(NewData)
-               
+
         if self.ACenable:
             if self.Stable is True:
                 self.threadCalcPSD.AddData(NewData)
@@ -447,7 +455,7 @@ class StbDetThread(Qt.QThread):
                                  Dev=self.Dev,
                                  SwVgsInd=self.VgIndex,
                                  SwVdsInd=self.VdIndex,
-                                 DigIndex=self.DigIndex)                                       
+                                 DigIndex=self.DigIndex)
         self.Buffer.Reset()
 
     def CalcSlope(self):
@@ -461,7 +469,7 @@ class StbDetThread(Qt.QThread):
             t = np.arange(0, (1/self.FsDC)*r, (1/self.FsDC))
             mm, oo = np.polyfit(t, dat, 1)
             time = x*(1/np.float32(self.FsDC))
-            self.Dev[ChnInd] = np.abs(np.mean(mm)) #slope (uA/s)
+            self.Dev[ChnInd] = np.abs(np.mean(mm))  # slope (uA/s)
             self.DCIds[ChnInd] = oo
         Stab = 0
         if self.StabCriteria == 'All channels':
@@ -472,7 +480,7 @@ class StbDetThread(Qt.QThread):
             if Stab == -1:
                 self.Stable = False
             else:
-                self.Stable = True 
+                self.Stable = True
         elif self.StabCriteria == 'One Channel':
             for slope in self.Dev:
                 if slope < self.MaxSlope:
@@ -482,7 +490,7 @@ class StbDetThread(Qt.QThread):
             slope = np.mean(self.Dev)
             if slope < self.MaxSlope:
                 self.Stable = True
-                
+
     def on_PSDDone(self):
         print('on_PSDDone')
         self.freqs = self.threadCalcPSD.ff
@@ -514,7 +522,7 @@ class StbDetThread(Qt.QThread):
     def on_NextVds(self):
         print('NextVds')
         self.VdIndex += 1
-        
+
         if self.VdIndex < len(self.VdSweepVals):
             self.NextVds = self.VdSweepVals[self.VdIndex]
             self.Wait = True
@@ -555,14 +563,15 @@ class StbDetThread(Qt.QThread):
             self.threadCalcPSD.PSDDone.disconnect()
             self.threadCalcPSD.stop()
         self.terminate()
-        
-################CALC PSD THREAD###############################################
-        
+
+
 class CalcPSD(Qt.QThread):
     PSDDone = Qt.pyqtSignal()
-    def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling, **kwargs):
-    
-        '''Initialization of the thread that is used to calculate the PSD
+
+    def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling,
+                 **kwargs):
+        '''Initialization of the thread that is used to
+        calculate the PSD
            Fs: float. Sampling Frequency
            nFFT: float.
            nAvg: int.
@@ -603,13 +612,13 @@ class CalcPSD(Qt.QThread):
         self.Buffer.Reset()
         self.terminate()
 
-################SAVE CHARACTERIZATION DICTs###################################
-        
+
 class SaveDicts(QObject):
     PSDSaved = Qt.pyqtSignal()
     DCSaved = Qt.pyqtSignal()
 
-    def __init__(self, SwVdsVals, SwVgsVals, Channels, DigColumns, IndexDigitalLines,
+    def __init__(self, SwVdsVals, SwVgsVals, Channels,
+                 DigColumns, IndexDigitalLines,
                  nFFT, FsDemod, Gate=False, ACenable=True):
         '''Initialize the Dictionaries to Save the Characterization
            SwVdsVals: array. Contains the values for the Vd sweep
@@ -638,65 +647,67 @@ class SaveDicts(QObject):
         if ACenable:
             self.PSDnFFT = 2**nFFT
             self.PSDFs = FsDemod
-    
+
             Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
             nFgm = np.array([])
-    
+
             self.DevACVals = self.InitACRecord(nVds=SwVdsVals,
                                                nVgs=SwVgsVals,
                                                nFgm=nFgm,
                                                nFpsd=Fpsd,
                                                ChNames=self.ChNamesList)
-        
+
     def InitDCRecord(self, nVds, nVgs, ChNames, Gate):
 
         Time = datetime.datetime.now()
-        DevDCVals={}
+        DevDCVals = {}
         for Ch in ChNames:
-            DCVals={'Ids':np.ones((len(nVgs),len(nVds)))*np.NaN,
-                    'Dev':np.ones((len(nVgs),len(nVds)))*np.NaN,
-                    'Vds':nVds,
-                    'Vgs':nVgs,
-                    'ChName':Ch,
-                    'Name':Ch,
-                    'DateTime':Time}
-            DevDCVals[Ch]=DCVals
-    
+            DCVals = {'Ids': np.ones((len(nVgs), len(nVds))) * np.NaN,
+                      'Dev': np.ones((len(nVgs), len(nVds))) * np.NaN,
+                      'Vds': nVds,
+                      'Vgs': nVgs,
+                      'ChName': Ch,
+                      'Name': Ch,
+                      'DateTime': Time}
+            DevDCVals[Ch] = DCVals
+
         if Gate:
-            GateDCVals = {'Ig':np.ones((len(nVgs),len(nVds)))*np.NaN,
-                        'Vds':nVds,
-                        'Vgs':nVgs,
-                        'ChName':'Gate',
-                        'Name':'Gate',
-                        'DateTime':Time}
-            DevDCVals['Gate']=GateDCVals
-    
+            GateDCVals = {'Ig': np.ones((len(nVgs), len(nVds))) * np.NaN,
+                          'Vds': nVds,
+                          'Vgs': nVgs,
+                          'ChName': 'Gate',
+                          'Name': 'Gate',
+                          'DateTime': Time}
+            DevDCVals['Gate'] = GateDCVals
+
         return DevDCVals
 
     def InitACRecord(self, nVds, nVgs, nFgm, nFpsd, ChNames):
-    
+
         Time = datetime.datetime.now()
-        DevACVals={}
+        DevACVals = {}
         for Ch in ChNames:
             noise = {}
             gm = {}
             for i in range(nVds.size):
-                noise['Vd{}'.format(i)] = np.ones((len(nVgs),nFpsd.size))*np.NaN
-                gm['Vd{}'.format(i)] = np.ones((len(nVgs),nFgm.size))*np.NaN*np.complex(1)
-    
-            ACVals={'PSD':noise,
-                    'gm':gm,
-                    'Vgs':nVgs,
-                    'Vds':nVds,
-                    'Fpsd':nFpsd,
-                    'Fgm':nFgm,
-                    'ChName':Ch,
-                    'Name':Ch,
-                    'DateTime':Time}
-            DevACVals[Ch]=ACVals
-    
+                noise['Vd{}'.format(i)] = np.ones((len(nVgs),
+                                                   nFpsd.size)) * np.NaN
+                gm['Vd{}'.format(i)] = np.ones((len(nVgs),
+                                                nFgm.size)) * np.NaN * np.complex(1)
+
+            ACVals = {'PSD': noise,
+                      'gm': gm,
+                      'Vgs': nVgs,
+                      'Vds': nVds,
+                      'Fpsd': nFpsd,
+                      'Fgm': nFgm,
+                      'ChName': Ch,
+                      'Name': Ch,
+                      'DateTime': Time}
+            DevACVals[Ch] = ACVals
+
         return DevACVals
-    
+
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
         print('SAVE_DCDICT')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
@@ -708,8 +719,13 @@ class SaveDicts(QObject):
         j = 0
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
+<<<<<<< Updated upstream
                 if chn.endswith(self.IndexDigitalLines[DigIndex]):         
                     print(self.IndexDigitalLines[DigIndex])
+=======
+                if chn.endswith(self.IndexDigitalLines[DigIndex]):
+                    print(self.DigColumns[DigIndex])
+>>>>>>> Stashed changes
                     self.DevDCVals[chn]['Ids'][SwVgsInd,
                                                SwVdsInd] = Ids[j]
                     self.DevDCVals[chn]['Dev'][SwVgsInd,
@@ -720,10 +736,8 @@ class SaveDicts(QObject):
                                            SwVdsInd] = Ids[inds]
                 self.DevDCVals[chn]['Dev'][SwVgsInd,
                                            SwVdsInd] = Dev[inds]
-                
-        self.DCSaved.emit()
 
-        # print('DCSaved')
+        self.DCSaved.emit()
 
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd, DigIndex):
         print('SAVE_ACDICT')
@@ -740,7 +754,7 @@ class SaveDicts(QObject):
         j = 0
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
-                if chn.endswith(self.IndexDigitalLines[DigIndex]):         
+                if chn.endswith(self.IndexDigitalLines[DigIndex]):
                     self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, j].flatten()
                     self.DevACVals[chn]['Fpsd'] = ff
@@ -772,7 +786,7 @@ class SaveDicts(QObject):
                                                          (2019, 12, 19, 16, 20,
                                                          59, 52661)
                                              },
-  
+
            Acdict: dictionary. Dictionary with AC characterization that has the
                                structure to be read and save correctly in the
                                database
@@ -801,7 +815,7 @@ class SaveDicts(QObject):
                                                          (2019, 12, 19, 16, 20,
                                                          59, 52661)
                                              },
-                               
+
                             }
            Folder, Oblea, Disp, Name, Cycle: str.
         '''
@@ -811,8 +825,16 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
+<<<<<<< Updated upstream
         # with open(self.FileName, "wb") as f:
         #     pickle.dump(Dcdict, f)
         #     if Acdict is not None:
         #         pickle.dump(Acdict, f)
         print('Saved')
+=======
+        with open(self.FileName, "wb") as f:
+            pickle.dump(Dcdict, f)
+            if Acdict is not None:
+                pickle.dump(Acdict, f)
+        print('Saved')
+>>>>>>> Stashed changes
