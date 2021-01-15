@@ -299,8 +299,7 @@ class SweepsConfig(pTypes.GroupParameter):
 
 
 class StbDetThread(Qt.QThread):
-    NextVg = Qt.pyqtSignal()
-    NextVd = Qt.pyqtSignal()
+    NextBias = Qt.pyqtSignal()
     NextDigital = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
     RefreshPlots = Qt.pyqtSignal()
@@ -362,14 +361,22 @@ class StbDetThread(Qt.QThread):
         self.NextVds = self.VdSweepVals[self.VdIndex]
         self.nChannels = nChannels
 
-        self.EventCalcAC = None
+        # Define Global variables for PSD
+        self.PSDDone = False
+        self.FsPSD = PSDKwargs['Fs']
+        self.nFFT = int(PSDKwargs['nFFT'])
+        self.nAvg = PSDKwargs['nAvg']
+        self.scaling = PSDKwargs['scaling']
+        self.PSDDuration = self.nFFT*self.nAvg*(1/self.FsPSD)
+
+        self.EventSwitch = None
 
         self.Timer = Qt.QTimer()
         # Define the buffer size
         print('InitBuffer')
         self.BufferDC = PltBuffer2D.Buffer2D(self.FsDC,
-                                           self.nChannels,
-                                           TimeBuffer)
+                                             self.nChannels,
+                                             TimeBuffer)
         # Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
                                   SwVdsVals=VdSweep,
@@ -377,53 +384,114 @@ class StbDetThread(Qt.QThread):
                                   Channels=ChnName,
                                   DigColumns=self.DigColumns,
                                   IndexDigitalLines=IndexDigitalLines,
-                                  nFFT=int(PSDKwargs['nFFT']),
-                                  FsDemod=PSDKwargs['Fs'],
+                                  nFFT=self.nFFT,
+                                  FsPSD=self.FsPSD,
                                   )
         if self.ACenable:
             # Todo change by a local buffer
-            # take the Fs and... from PSDKwargs
-            self.BufferPSD =  PltBuffer2D.Buffer2D(self.FsDC,
-                                                   self.nChannels,
-                                                   TimeBuffer)
+            BufferSize = (self.nFFT * PSDKwargs['nAvg']) / self.FsPSD
+            self.BufferPSD = PltBuffer2D.Buffer2D(self.FsPSD,
+                                                  self.nChannels,
+                                                  BufferSize)
+
             # self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
             # self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
             # self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-            self.threadCalcPSD = CalcPSD(**PSDKwargs,
-                                         nChannels=self.nChannels)
-            self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
-            self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-        else:
-            self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
+        #     self.threadCalcPSD = CalcPSD(**PSDKwargs,
+        #                                  nChannels=self.nChannels)
+        #     self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
+        #     self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
+        # else:
+        #     self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
 
         # self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
         # self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
         self.State = 'WaitStab'
-        
+
     def NextBiasPoint(self):
-        ### chanege state between "WaitStab" or "End"     
+        ### chanege state between "WaitStab" or "End"
+        self.State = 'WaitStab'
+        self.Stable = False
+        self.PSDDone = False
+        self.VgIndex += 1
+        if self.VgIndex < len(self.VgSweepVals):
+            self.NextVgs = self.VgSweepVals[self.VgIndex]
+            self.Wait = True
+            self.NextBias.emit()
+        else:
+            self.VgIndex = 0
+            self.NextVgs = self.VgSweepVals[self.VgIndex]
+
+            self.VdIndex += 1
+            if self.VdIndex < len(self.VdSweepVals):
+                self.NextVds = self.VdSweepVals[self.VdIndex]
+                self.Wait = True
+                self.NextBias.emit()
+            else:
+                self.VdIndex = 0
+                self.NextVds = self.VdSweepVals[self.VdIndex]
+
+                self.DigIndex += 1
+                if self.DigIndex < len(self.DigColumns):
+                    self.Wait = True
+                    self.NextDigital.emit()
+                else:
+                    self.DigIndex = 0
+                    # TODO Check the way to save dicts
+                    # self.DCDict = self.SaveDCAC.DevDCVals  ## ?????
+                    # if self.ACenable:
+                    #     self.ACDict = self.SaveDCAC.DevACVals
+                    # else:
+                    #     self.ACDict = None
+                    # print('x')
+                    self.State = 'End'
+                    self.CharactEnd.emit()
 
     def run(self):
         while True:
             if self.State == 'WaitStab':
                 if self.BufferDC.IsFilled():
                     if self.CalcSlope():
-                        ### Add IDS data to dicts
-                        ## lauch refresh plots
+                        self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
+                                                 Dev=self.Dev,
+                                                 SwVgsInd=self.VgIndex,
+                                                 SwVdsInd=self.VdIndex,
+                                                 DigIndex=self.DigIndex)
+                        self.on_refreshPlots()
+                        self.BufferDC.reset() ## Va aquí?
                         if self.ACenable:
-                            ### Change digital lines...
+                            if self.EventSwitch:
+                                self.EventSwitch(Signal='AC')
                             self.State = 'WaitPSD'
+                            print('Acquire PSD data for', self.PSDDuration, 'seconds')
                         else:
                             ### check for next point
                             self.NextBiasPoint()   
                             
             if self.State == 'WaitPSD':
-                if self.BufferAC.IsFilled():
-                    ## calc PSD
-                    ## add data to Dicts
-                    ## save dicts...
-                    ## lauch refresh plots
-                    ## Check for next point
+                if self.BufferPSD.IsFilled():
+                    if self.CalcPSD():
+                        self.SaveDCAC.SaveACDict(psd=self.psd,
+                                                 ff=self.ff,
+                                                 SwVgsInd=self.VgIndex,
+                                                 SwVdsInd=self.VdIndex,
+                                                 DigIndex=self.DigIndex)
+                        self.PSDDone = False
+                        if self.EventSwitch:
+                            self.EventSwitch(Signal='DC')
+                        self.on_refreshPlots()
+                        self.BufferPSD.reset() ## Va aquí?
+                        self.NextBiasPoint()
+                        ### check for next point
+                        ## calc PSD
+                        ## add data to Dicts
+                        ## save dicts...
+                        ## lauch refresh plots
+                        ## Check for next point
+
+            if self.State == 'End':
+                print('StopCharact')
+                        
 
             # if self.Buffer.IsFilled():
             #     self.CalcSlope()
@@ -441,14 +509,14 @@ class StbDetThread(Qt.QThread):
             #                                  DigIndex=self.DigIndex)
             #     self.Buffer.Reset()
 
-            else:
-                Qt.QThread.msleep(10)
+            # else:
+            #     Qt.QThread.msleep(10)
 
     def AddData(self, DataDC, DataAC):
         if self.State == 'WaitStab':
             self.BufferDC.AddData(DataDC)
         elif self.State == 'WaitPSD':
-            self.BufferDC.AddData(DataDC)
+            self.BufferAC.AddData(DataAC)
         elif self.State == 'END':
             pass
             ### do nothing or waring....
@@ -485,8 +553,8 @@ class StbDetThread(Qt.QThread):
         self.Stable = True
         if self.ACenable:
             # enviar la señal de AC
-            if self.EventCalcAC:
-                self.EventCalcAC(Signal='AC')
+            if self.EventSwitch:
+                self.EventSwitch(Signal='AC')
             self.threadCalcPSD.start()
         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                  Dev=self.Dev,
@@ -532,70 +600,79 @@ class StbDetThread(Qt.QThread):
                     ### check for timeout
                 self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
 
-        
         return self.Stable
 
-    def on_PSDDone(self):
-        print('on_PSDDone')
-        self.freqs = self.threadCalcPSD.ff
-        self.PSDdata = self.threadCalcPSD.psd
-        self.threadCalcPSD.stop()
-        self.SaveDCAC.SaveACDict(psd=self.PSDdata,
-                                 ff=self.freqs,
-                                 SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex,
-                                 DigIndex=self.DigIndex,
-                                 )
-        if self.EventCalcAC:
-            self.EventCalcAC(Signal='DC')
+    def CalcPSD(self):
+        print('CalcPSD')
+        self.ff, self.psd = welch(self.BufferPSD,
+                                  fs=self.FsPSD,
+                                  nperseg=self.nFFT,
+                                  scaling=self.scaling,
+                                  axis=0)
+        self.PSDDone = True  # IMPROVE THIS PART
+        return self.PSDDone
 
-    def on_NextVgs(self):
-        print('NextVgs')
-        self.Buffer.Reset()
-        self.Stable = False
-        self.VgIndex += 1
-        if self.VgIndex < len(self.VgSweepVals):
-            self.NextVgs = self.VgSweepVals[self.VgIndex]
-            self.Wait = True
-            self.NextVg.emit()
-        else:
-            self.VgIndex = 0
-            self.NextVgs = self.VgSweepVals[self.VgIndex]
-            self.on_NextVds()
+    # def on_PSDDone(self):
+    #     print('on_PSDDone')
+    #     self.freqs = self.threadCalcPSD.ff
+    #     self.PSDdata = self.threadCalcPSD.psd
+    #     self.threadCalcPSD.stop()
+    #     self.SaveDCAC.SaveACDict(psd=self.PSDdata,
+    #                              ff=self.freqs,
+    #                              SwVgsInd=self.VgIndex,
+    #                              SwVdsInd=self.VdIndex,
+    #                              DigIndex=self.DigIndex,
+    #                              )
+    #     if self.EventSwitch:
+    #         self.EventSwitch(Signal='DC')
 
-    def on_NextVds(self):
-        print('NextVds')
-        self.VdIndex += 1
+    # def on_NextVgs(self):
+    #     print('NextVgs')
+    #     self.Buffer.Reset()
+    #     self.Stable = False
+    #     self.VgIndex += 1
+    #     if self.VgIndex < len(self.VgSweepVals):
+    #         self.NextVgs = self.VgSweepVals[self.VgIndex]
+    #         self.Wait = True
+    #         self.NextVg.emit()
+    #     else:
+    #         self.VgIndex = 0
+    #         self.NextVgs = self.VgSweepVals[self.VgIndex]
+    #         self.on_NextVds()
 
-        if self.VdIndex < len(self.VdSweepVals):
-            self.NextVds = self.VdSweepVals[self.VdIndex]
-            self.Wait = True
-            self.NexSAVE_DCDICTtVd.emit()
-        else:
-            self.VdIndex = 0
-            self.NextVds = self.VdSweepVals[self.VdIndex]
-            self.on_NextDigital()
+    # def on_NextVds(self):
+    #     print('NextVds')
+    #     self.VdIndex += 1
 
-    def on_NextDigital(self):
-        print('NextDigital')
-        self.DigIndex += 1
-        if self.DigIndex < len(self.DigColumns):
-            # self.NextColumn = self.DigIndex
-            self.Wait = True
-            self.NextDigital.emit()
-        else:
-            self.DigIndex = 0
-            self.DCDict = self.SaveDCAC.DevDCVals
-            print('ACenabe_muxcharact')
-            print(self.ACenable)
-            if self.ACenable:
-                self.ACDict = self.SaveDCAC.DevACVals
-            else:
-                self.ACDict = None
-            print('x')
-            self.CharactEnd.emit()
+    #     if self.VdIndex < len(self.VdSweepVals):
+    #         self.NextVds = self.VdSweepVals[self.VdIndex]
+    #         self.Wait = True
+    #         self.NexSAVE_DCDICTtVd.emit()
+    #     else:
+    #         self.VdIndex = 0
+    #         self.NextVds = self.VdSweepVals[self.VdIndex]
+    #         self.on_NextDigital()
 
-    def on_refreshPlots(self): # Mejor hacer el emit despues de guardar
+    # def on_NextDigital(self):
+    #     print('NextDigital')
+    #     self.DigIndex += 1
+    #     if self.DigIndex < len(self.DigColumns):
+    #         # self.NextColumn = self.DigIndex
+    #         self.Wait = True
+    #         self.NextDigital.emit()
+    #     else:
+    #         self.DigIndex = 0
+    #         self.DCDict = self.SaveDCAC.DevDCVals
+    #         print('ACenabe_muxcharact')
+    #         print(self.ACenable)
+    #         if self.ACenable:
+    #             self.ACDict = self.SaveDCAC.DevACVals
+    #         else:
+    #             self.ACDict = None
+    #         print('x')
+    #         self.CharactEnd.emit()
+
+    def on_refreshPlots(self):
         print('on_refreshplots')
         self.RefreshPlots.emit()
 
@@ -609,62 +686,59 @@ class StbDetThread(Qt.QThread):
         self.terminate()
 
 
-class CalcPSD(Qt.QThread):
-    PSDDone = Qt.pyqtSignal()
+# class CalcPSD(Qt.QThread):
+#     PSDDone = Qt.pyqtSignal()
 
-    def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling,
-                 **kwargs):
-        '''Initialization of the thread that is used to
-        calculate the PSD
-           Fs: float. Sampling Frequency
-           nFFT: float.
-           nAvg: int.
-           nChannels: int. Number of acquisition channels (rows) active
-           scaling: str. Two options, Density or Spectrum
-        '''
-        super(CalcPSD, self).__init__()
-        print('CALCPSD_FUNCTION')
-        self.scaling = scaling
-        self.nFFT = 2**nFFT
-        self.nChannels = nChannels
-        self.Fs = Fs
-        self.BufferSize = self.nFFT * PSDnAvg
-        self.Buffer = PltBuffer2D.Buffer2D(self.Fs, self.nChannels,
-                                           self.BufferSize/self.Fs)
+#     def __init__(self, Fs, nFFT, PSDnAvg, nChannels, scaling,
+#                  **kwargs):
+#         '''Initialization of the thread that is used to
+#         calculate the PSD
+#            Fs: float. Sampling Frequency
+#            nFFT: float.
+#            nAvg: int.
+#            nChannels: int. Number of acquisition channels (rows) active
+#            scaling: str. Two options, Density or Spectrum
+#         '''
+#         super(CalcPSD, self).__init__()
+#         print('CALCPSD_FUNCTION')
+#         self.scaling = scaling
+#         self.nFFT = 2**nFFT
+#         self.nChannels = nChannels
+#         self.Fs = Fs
+#         self.BufferSize = self.nFFT * PSDnAvg
+#         self.Buffer = PltBuffer2D.Buffer2D(self.Fs, self.nChannels,
+#                                            self.BufferSize/self.Fs)
 
-    def run(self, *args, **kwargs):
-        while True:
-            if self.Buffer.IsFilled():
-                print('Calculation PSD')
-                self.ff, self.psd = welch(self.Buffer,
-                                          fs=self.Fs,
-                                          nperseg=self.nFFT,
-                                          scaling=self.scaling,
-                                          axis=0)
-                self.Buffer.Reset()
-                self.PSDDone.emit()
+#     def run(self, *args, **kwargs):
+#         while True:
+#             if self.Buffer.IsFilled():
+#                 print('Calculation PSD')
+#                 self.ff, self.psd = welch(self.Buffer,
+#                                           fs=self.Fs,
+#                                           nperseg=self.nFFT,
+#                                           scaling=self.scaling,
+#                                           axis=0)
+#                 self.Buffer.Reset()
+#                 self.PSDDone.emit()
 
-            else:
-                Qt.QCoreApplication.processEvents()
-                Qt.QThread.msleep(200)
+#             else:
+#                 Qt.QCoreApplication.processEvents()
+#                 Qt.QThread.msleep(200)
 
-    def AddData(self, NewData):
-        print('ADDPSDDATA')
-        self.Buffer.AddData(NewData)
+#     def AddData(self, NewData):
+#         print('Add PSD Data')
+#         self.Buffer.AddData(NewData)
 
-    def stop(self):
-        self.Buffer.Reset()
-        self.terminate()
+#     def stop(self):
+#         self.Buffer.Reset()
+#         self.terminate()
 
 
 class SaveDicts(QObject):
-    # Remove this signals
-    PSDSaved = Qt.pyqtSignal()
-    DCSaved = Qt.pyqtSignal()
 
     def __init__(self, SwVdsVals, SwVgsVals, Channels,
                  DigColumns, IndexDigitalLines,
-                 nFFT, FsDemod, Gate=False, ACenable=True):
+                 nFFT, FsPSD, Gate=False, ACenable=True):
         '''Initialize the Dictionaries to Save the Characterization
            SwVdsVals: array. Contains the values for the Vd sweep
                              [0.1, 0.2]
@@ -674,7 +748,6 @@ class SaveDicts(QObject):
                                  channel and column and its index
                                  {'Ch04Col1': 0, 'Ch05Col1': 1, 'Ch06Col1': 2}
            nFFT: int.
-                   8
            FsPSD: float. Sampling Frequency used in the Demodulation Process
                            5000.0
         '''
@@ -691,7 +764,7 @@ class SaveDicts(QObject):
         # AC dictionaries
         if ACenable:
             self.PSDnFFT = 2**nFFT
-            self.PSDFs = FsDemod
+            self.PSDFs = FsPSD
 
             Fpsd = np.fft.rfftfreq(self.PSDnFFT, 1/self.PSDFs)
             nFgm = np.array([])
@@ -778,8 +851,6 @@ class SaveDicts(QObject):
                 self.DevDCVals[chn]['Dev'][SwVgsInd,
                                            SwVdsInd] = Dev[inds]
 
-        self.DCSaved.emit()
-
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd, DigIndex):
         print('SAVE_ACDICT')
         '''Function that Saves PSD Data in the AC Dict in the appropiate form
@@ -805,8 +876,6 @@ class SaveDicts(QObject):
                 self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff
-
-        self.PSDSaved.emit()
 
     def SaveDicts(self, Dcdict, Folder, Oblea, Disp, Name, Cycle, Acdict=None):
         '''Creates the appropiate Folder NAme to be upload to the database
