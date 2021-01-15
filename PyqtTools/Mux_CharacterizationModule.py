@@ -387,13 +387,10 @@ class StbDetThread(Qt.QThread):
             self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
         else:
             self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
-<<<<<<< Updated upstream
-        # self.TimeViewPlot, self.TimeViewAxs = plt.subplots()
-        self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
-        self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
 
-=======
->>>>>>> Stashed changes
+        # self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
+        # self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
+
 
     def run(self):
         while True:
@@ -551,7 +548,7 @@ class StbDetThread(Qt.QThread):
             print('x')
             self.CharactEnd.emit()
 
-    def on_refreshPlots(self):
+    def on_refreshPlots(self): # Mejor hacer el emit despues de guardar
         print('on_refreshplots')
         self.RefreshPlots.emit()
 
@@ -719,13 +716,8 @@ class SaveDicts(QObject):
         j = 0
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
-<<<<<<< Updated upstream
                 if chn.endswith(self.IndexDigitalLines[DigIndex]):         
                     print(self.IndexDigitalLines[DigIndex])
-=======
-                if chn.endswith(self.IndexDigitalLines[DigIndex]):
-                    print(self.DigColumns[DigIndex])
->>>>>>> Stashed changes
                     self.DevDCVals[chn]['Ids'][SwVgsInd,
                                                SwVdsInd] = Ids[j]
                     self.DevDCVals[chn]['Dev'][SwVgsInd,
@@ -825,16 +817,8 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-<<<<<<< Updated upstream
         # with open(self.FileName, "wb") as f:
         #     pickle.dump(Dcdict, f)
         #     if Acdict is not None:
         #         pickle.dump(Acdict, f)
         print('Saved')
-=======
-        with open(self.FileName, "wb") as f:
-            pickle.dump(Dcdict, f)
-            if Acdict is not None:
-                pickle.dump(Acdict, f)
-        print('Saved')
->>>>>>> Stashed changes
