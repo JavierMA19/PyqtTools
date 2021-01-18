@@ -373,7 +373,7 @@ class StbDetThread(Qt.QThread):
         self.Timer = None
 
         # Define the buffer size
-        print('InitBuffer')
+        print('InitDCBuffer')
         self.BufferDC = PltBuffer2D.Buffer2D(self.FsDC,
                                              self.nChannels,
                                              TimeBuffer)
@@ -390,10 +390,10 @@ class StbDetThread(Qt.QThread):
         if self.ACenable:
             # Todo change by a local buffer
             BufferSize = (2**self.nFFT * PSDKwargs['nAvg'])
-            print('BufferSize', BufferSize)
+            print('BufferACSize', BufferSize)
             self.BufferPSD = PltBuffer2D.Buffer2D(self.FsPSD,
                                                   self.nChannels,
-                                                  BufferSize)
+                                                  BufferSize/self.FsPSD)
 
             # self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
             # self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
@@ -474,6 +474,7 @@ class StbDetThread(Qt.QThread):
 
             if self.State == 'WaitPSD':
                 if self.BufferPSD.IsFilled():
+                    print('PSD Buffer filled')
                     if self.CalcPSD():
                         self.SaveDCAC.SaveACDict(psd=self.psd,
                                                  ff=self.ff,
@@ -520,6 +521,9 @@ class StbDetThread(Qt.QThread):
         if self.State == 'WaitStab':
             self.BufferDC.AddData(DataDC)
         elif self.State == 'WaitPSD':
+            print('add PSD')
+            print(DataAC.shape)
+            print(self.BufferPSD.shape)
             self.BufferPSD.AddData(DataAC)
         elif self.State == 'END':
             pass
@@ -631,9 +635,11 @@ class StbDetThread(Qt.QThread):
               )
         self.ff, self.psd = welch(self.BufferPSD,
                                   fs=self.FsPSD,
-                                  nperseg=self.nFFT,
+                                  nperseg=2**self.nFFT,
                                   scaling=self.scaling,
                                   axis=0)
+        print(self.ff.shape, 
+              self.psd.shape)
         self.PSDDone = True  # IMPROVE THIS PART
         return self.PSDDone
 
