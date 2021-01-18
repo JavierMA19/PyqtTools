@@ -178,7 +178,7 @@ ACParams = {'name': 'ACConfig',
                                         'value': 1000,
                                         'step': 100,
                                         'sufix': 'Hz'},
-                                       {'name': 'PSDnAvg',
+                                       {'name': 'nAvg',
                                         'type': 'int',
                                         'value': 2,
                                         'step': 1, },
@@ -338,7 +338,6 @@ class StbDetThread(Qt.QThread):
         # Init threads and flags
         self.threadCalcPSD = None
         self.ToStabData = None
-        self.Wait = True
         self.Stable = False
         self.StabTimeOut = False
         # Define global variables
@@ -347,7 +346,6 @@ class StbDetThread(Qt.QThread):
         self.MaxSlope = MaxSlope
         self.TimeOut = TimeOut
         self.DelayTime = DelayTime
-        self.ElapsedTime = 0
         self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
 
@@ -371,7 +369,9 @@ class StbDetThread(Qt.QThread):
 
         self.EventSwitch = None
 
-        self.Timer = Qt.QTimer()
+        # Define Timer
+        self.Timer = None
+
         # Define the buffer size
         print('InitBuffer')
         self.BufferDC = PltBuffer2D.Buffer2D(self.FsDC,
@@ -389,7 +389,8 @@ class StbDetThread(Qt.QThread):
                                   )
         if self.ACenable:
             # Todo change by a local buffer
-            BufferSize = (self.nFFT * PSDKwargs['nAvg']) / self.FsPSD
+            BufferSize = (self.nFFT * PSDKwargs['nAvg'])
+            print('BufferSize', BufferSize)
             self.BufferPSD = PltBuffer2D.Buffer2D(self.FsPSD,
                                                   self.nChannels,
                                                   BufferSize)
@@ -406,6 +407,7 @@ class StbDetThread(Qt.QThread):
 
         # self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
         # self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
+        self.InitTimer()
         self.State = 'WaitStab'
 
     def NextBiasPoint(self):
@@ -416,7 +418,6 @@ class StbDetThread(Qt.QThread):
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
-            self.Wait = True
             self.NextBias.emit()
         else:
             self.VgIndex = 0
@@ -425,7 +426,6 @@ class StbDetThread(Qt.QThread):
             self.VdIndex += 1
             if self.VdIndex < len(self.VdSweepVals):
                 self.NextVds = self.VdSweepVals[self.VdIndex]
-                self.Wait = True
                 self.NextBias.emit()
             else:
                 self.VdIndex = 0
@@ -433,7 +433,6 @@ class StbDetThread(Qt.QThread):
 
                 self.DigIndex += 1
                 if self.DigIndex < len(self.DigColumns):
-                    self.Wait = True
                     self.NextDigital.emit()
                 else:
                     self.DigIndex = 0
@@ -458,7 +457,9 @@ class StbDetThread(Qt.QThread):
                                                  SwVdsInd=self.VdIndex,
                                                  DigIndex=self.DigIndex)
                         self.on_refreshPlots()
-                        self.BufferDC.reset() ## Va aquí?
+                        self.BufferDC.Reset()
+                        
+                        
                         if self.ACenable:
                             if self.EventSwitch:
                                 self.EventSwitch(Signal='AC')
@@ -466,8 +467,11 @@ class StbDetThread(Qt.QThread):
                             print('Acquire PSD data for', self.PSDDuration, 'seconds')
                         else:
                             ### check for next point
-                            self.NextBiasPoint()   
-                            
+                            self.NextBiasPoint()
+                            self.InitTimer()
+                    else:
+                        self.BufferDC.Reset()
+
             if self.State == 'WaitPSD':
                 if self.BufferPSD.IsFilled():
                     if self.CalcPSD():
@@ -480,7 +484,7 @@ class StbDetThread(Qt.QThread):
                         if self.EventSwitch:
                             self.EventSwitch(Signal='DC')
                         self.on_refreshPlots()
-                        self.BufferPSD.reset() ## Va aquí?
+                        self.BufferPSD.Reset() ## Va aquí?
                         self.NextBiasPoint()
                         ### check for next point
                         ## calc PSD
@@ -516,10 +520,24 @@ class StbDetThread(Qt.QThread):
         if self.State == 'WaitStab':
             self.BufferDC.AddData(DataDC)
         elif self.State == 'WaitPSD':
-            self.BufferAC.AddData(DataAC)
+            self.BufferPSD.AddData(DataAC)
         elif self.State == 'END':
             pass
-            ### do nothing or waring....
+            ### do nothing or warning....
+
+    def InitTimer(self):
+        print('InitTimer')
+        # if self.Timer:
+        #     print('Timer Exists')
+        #     # self.Timer.setSingleShot(False)
+        # else:
+            
+        self.Timer = Qt.QTimer()
+        self.Timer.timeout.connect(self.TimeforStabilization)
+        self.Timer.setSingleShot(True)
+        self.Timer.start(self.TimeOut*1000)
+        print(self.TimeOut)
+
 
         # if self.Stable is False:
         #     while self.Buffer.IsFilled():
@@ -545,30 +563,32 @@ class StbDetThread(Qt.QThread):
         #     if self.Stable is True:
         #         self.threadCalcPSD.AddData(NewData)
 
-    def printTime(self):
+    def TimeforStabilization(self):
         print('TimeOut')
+        # self.CalcSlope()
         self.Timer.stop()
         self.Timer.deleteLater()
-        self.CalcSlope()
+
         self.Stable = True
-        if self.ACenable:
-            # enviar la señal de AC
-            if self.EventSwitch:
-                self.EventSwitch(Signal='AC')
-            self.threadCalcPSD.start()
-        self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
-                                 Dev=self.Dev,
-                                 SwVgsInd=self.VgIndex,
-                                 SwVdsInd=self.VdIndex,
-                                 DigIndex=self.DigIndex)
-        self.Buffer.Reset()
+        
+        # if self.ACenable:
+        #     # enviar la señal de AC
+        #     if self.EventSwitch:
+        #         self.EventSwitch(Signal='AC')
+        #     self.threadCalcPSD.start()
+        # self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
+        #                          Dev=self.Dev,
+        #                          SwVgsInd=self.VgIndex,
+        #                          SwVdsInd=self.VdIndex,
+        #                          DigIndex=self.DigIndex)
+        # self.Buffer.Reset()
 
     def CalcSlope(self):
-        print('CalcSlope', 'FSdemod =', self.FsDC)
-        self.Dev = np.ndarray((self.Buffer.shape[1],))
-        self.DCIds = np.ndarray((self.Buffer.shape[1], 1))
+        print('CalcSlope')
+        self.Dev = np.ndarray((self.BufferDC.shape[1],))
+        self.DCIds = np.ndarray((self.BufferDC.shape[1], 1))
 
-        for ChnInd, dat in enumerate(self.Buffer.transpose()):
+        for ChnInd, dat in enumerate(self.BufferDC.transpose()):
             r = len(dat)
             x = np.arange(0, r)
             t = np.arange(0, (1/self.FsDC)*r, (1/self.FsDC))
@@ -596,14 +616,19 @@ class StbDetThread(Qt.QThread):
             if slope < self.MaxSlope:
                 self.Stable = True
                 
-        if self.Stable is False:
+        # if self.Stable is False:
+        #     print('Wait for stabilization')
                     ### check for timeout
-                self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
+                # self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
 
         return self.Stable
 
     def CalcPSD(self):
         print('CalcPSD')
+        print(self.BufferPSD.shape,
+              self.FsPSD,
+              self.nFFT,
+              )
         self.ff, self.psd = welch(self.BufferPSD,
                                   fs=self.FsPSD,
                                   nperseg=self.nFFT,
@@ -873,6 +898,8 @@ class SaveDicts(QObject):
                     print(chn, DigIndex, j)
                     j += 1
             else:
+                print(psd.shape)
+                print(inds)
                 self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff
