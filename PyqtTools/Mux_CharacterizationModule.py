@@ -365,7 +365,7 @@ class StbDetThread(Qt.QThread):
         self.nFFT = int(PSDKwargs['nFFT'])
         self.nAvg = PSDKwargs['nAvg']
         self.scaling = PSDKwargs['scaling']
-        self.PSDDuration = self.nFFT*self.nAvg*(1/self.FsPSD)
+        self.PSDDuration = 2**self.nFFT*self.nAvg*(1/self.FsPSD)
 
         self.EventSwitch = None
 
@@ -389,7 +389,7 @@ class StbDetThread(Qt.QThread):
                                   )
         if self.ACenable:
             # Todo change by a local buffer
-            BufferSize = (self.nFFT * PSDKwargs['nAvg'])
+            BufferSize = (2**self.nFFT * PSDKwargs['nAvg'])
             print('BufferSize', BufferSize)
             self.BufferPSD = PltBuffer2D.Buffer2D(self.FsPSD,
                                                   self.nChannels,
