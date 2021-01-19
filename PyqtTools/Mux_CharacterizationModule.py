@@ -495,6 +495,7 @@ class StbDetThread(Qt.QThread):
                         ## Check for next point
 
             if self.State == 'End':
+                self.stop()
                 print('StopCharact')
                         
 
@@ -710,10 +711,10 @@ class StbDetThread(Qt.QThread):
     def stop(self):
         # self.Timer.stop()
         # self.Timer.deleteLater()
-        if self.threadCalcPSD is not None:
-            self.SaveDCAC.PSDSaved.disconnect()
-            self.threadCalcPSD.PSDDone.disconnect()
-            self.threadCalcPSD.stop()
+        # if self.threadCalcPSD is not None:
+        #     self.SaveDCAC.PSDSaved.disconnect()
+        #     self.threadCalcPSD.PSDDone.disconnect()
+        #     self.threadCalcPSD.stop()
         self.terminate()
 
 
