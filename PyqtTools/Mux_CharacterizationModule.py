@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import QFileDialog
 # import PyGFETdb.DataStructures as PyData
 # import PyGFETdb.PlotDataClass as PyFETpl
 import PyqtTools.PlotModule as PltBuffer2D
+import time
 
 
 ConfigSweepsParams = {'name': 'SweepsConfig',
@@ -360,7 +361,6 @@ class StbDetThread(Qt.QThread):
         self.nChannels = nChannels
 
         # Define Global variables for PSD
-        self.PSDDone = False
         self.FsPSD = PSDKwargs['Fs']
         self.nFFT = int(PSDKwargs['nFFT'])
         self.nAvg = PSDKwargs['nAvg']
@@ -414,7 +414,6 @@ class StbDetThread(Qt.QThread):
         ### chanege state between "WaitStab" or "End"
         self.State = 'WaitStab'
         self.Stable = False
-        self.PSDDone = False
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
@@ -475,24 +474,26 @@ class StbDetThread(Qt.QThread):
             if self.State == 'WaitPSD':
                 if self.BufferPSD.IsFilled():
                     print('PSD Buffer filled')
-                    if self.CalcPSD():
-                        self.SaveDCAC.SaveACDict(psd=self.psd,
-                                                 ff=self.ff,
-                                                 SwVgsInd=self.VgIndex,
-                                                 SwVdsInd=self.VdIndex,
-                                                 DigIndex=self.DigIndex)
-                        self.PSDDone = False
-                        if self.EventSwitch:
-                            self.EventSwitch(Signal='DC')
-                        self.on_refreshPlots()
-                        self.BufferPSD.Reset() ## Va aquí?
-                        self.NextBiasPoint()
-                        ### check for next point
-                        ## calc PSD
-                        ## add data to Dicts
-                        ## save dicts...
-                        ## lauch refresh plots
-                        ## Check for next point
+                    self.CalcPSD()
+                    T1 = time.time()
+                    self.SaveDCAC.SaveACDict(psd=self.psd,
+                                             ff=self.ff,
+                                             SwVgsInd=self.VgIndex,
+                                             SwVdsInd=self.VdIndex,
+                                             DigIndex=self.DigIndex)
+                    print('Saving AC Data Time', time.time() - T1)
+
+                    if self.EventSwitch:
+                        self.EventSwitch(Signal='DC')
+                    self.on_refreshPlots()
+                    self.BufferPSD.Reset() ## Va aquí?
+                    self.NextBiasPoint()
+                    ### check for next point
+                    ## calc PSD
+                    ## add data to Dicts
+                    ## save dicts...
+                    ## lauch refresh plots
+                    ## Check for next point
 
             if self.State == 'End':
                 self.stop()
@@ -522,9 +523,6 @@ class StbDetThread(Qt.QThread):
         if self.State == 'WaitStab':
             self.BufferDC.AddData(DataDC)
         elif self.State == 'WaitPSD':
-            print('add PSD')
-            print(DataAC.shape)
-            print(self.BufferPSD.shape)
             self.BufferPSD.AddData(DataAC)
         elif self.State == 'END':
             pass
@@ -629,20 +627,11 @@ class StbDetThread(Qt.QThread):
         return self.Stable
 
     def CalcPSD(self):
-        print('CalcPSD')
-        print(self.BufferPSD.shape,
-              self.FsPSD,
-              self.nFFT,
-              )
         self.ff, self.psd = welch(self.BufferPSD,
                                   fs=self.FsPSD,
                                   nperseg=2**self.nFFT,
                                   scaling=self.scaling,
                                   axis=0)
-        print(self.ff.shape, 
-              self.psd.shape)
-        self.PSDDone = True  # IMPROVE THIS PART
-        return self.PSDDone
 
     # def on_PSDDone(self):
     #     print('on_PSDDone')
@@ -860,7 +849,6 @@ class SaveDicts(QObject):
 
     # AddDataDC??
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
-        print('SAVE_DCDICT')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
            Ids: array. Contains all the data to be saved in the DC dictionary
@@ -884,7 +872,6 @@ class SaveDicts(QObject):
                                            SwVdsInd] = Dev[inds]
 
     def SaveACDict(self, psd, ff, SwVgsInd, SwVdsInd, DigIndex):
-        print('SAVE_ACDICT')
         '''Function that Saves PSD Data in the AC Dict in the appropiate form
            for database
            psd: array(matrix). Contains all the PSD data to be saved in the AC
@@ -902,11 +889,8 @@ class SaveDicts(QObject):
                     self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, j].flatten()
                     self.DevACVals[chn]['Fpsd'] = ff
-                    print(chn, DigIndex, j)
                     j += 1
             else:
-                print(psd.shape)
-                print(inds)
                 self.DevACVals[chn]['PSD']['Vd{}'.format(SwVdsInd)][
                             SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff

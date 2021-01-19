@@ -183,6 +183,7 @@ class CharactPlotter(Qt.QThread):
     def run(self, *args, **kwargs):
         while True:
             if self.Refresh:
+                T1 = time.time()
                 # Plot all Ids curves
                 for c in self.IdsCurves:
                     Ids = self.DevDCVals[c.opts['name']]['Ids']
@@ -198,6 +199,7 @@ class CharactPlotter(Qt.QThread):
                     c.setData(self.FpsdLog, pltpsd)
 
                 self.Refresh = False
+                print('RefreshPLot Time', time.time() - T1)
             else:
                 Qt.QThread.msleep(100)
 
