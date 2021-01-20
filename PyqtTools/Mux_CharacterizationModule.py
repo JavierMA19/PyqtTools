@@ -176,22 +176,22 @@ ACParams = {'name': 'ACConfig',
                                         'value': True, },
                                        {'name': 'Fs',
                                         'type': 'float',
-                                        'value': 1000,
+                                        'value': 30000,
                                         'step': 100,
                                         'sufix': 'Hz'},
                                        {'name': 'nAvg',
                                         'type': 'int',
-                                        'value': 2,
+                                        'value': 5,
                                         'step': 1, },
                                        {'name': 'nFFT',
                                         'type': 'int',
-                                        'value': 12,
+                                        'value': 17,
                                         'step': 1, },
-                                       {'name': 'scaling',
-                                        'type': 'list',
-                                        'values': ['density',
-                                                   'spectrum']
-                                        },
+                                       # {'name': 'scaling',
+                                       #  'type': 'list',
+                                       #  'values': ['density',
+                                       #             'spectrum']
+                                       #  },
                                        {'name': 'PSD Duration',
                                         'type': 'float',
                                         'value': 20,
@@ -450,6 +450,7 @@ class StbDetThread(Qt.QThread):
         while True:
             if self.State == 'WaitStab':
                 if self.BufferDC.IsFilled():
+                # if dataDC is not none:
                     if self.CalcSlope():
                         self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                                  Dev=self.Dev,
@@ -471,6 +472,7 @@ class StbDetThread(Qt.QThread):
                             self.InitTimer()
                     else:
                         self.BufferDC.Reset()
+                        # DataDC = None
                 else:
                     self.on_ReadDaqInt()
 
