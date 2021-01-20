@@ -62,6 +62,19 @@ class ReadAnalog(Daq.Task):
 
         self.AutoRegisterDoneEvent(0)
 
+    def ReadData(self, Fs, nSamps, EverySamps):
+        self.Fs = Fs
+        self.EverySamps = EverySamps
+
+        self.data = np.ndarray([len(self.Channels), ])
+
+        self.CfgSampClkTiming("", Fs, Daq.DAQmx_Val_Rising,
+                              Daq.DAQmx_Val_FiniteSamps, nSamps)
+
+        self.AutoRegisterEveryNSamplesEvent(Daq.DAQmx_Val_Acquired_Into_Buffer,
+                                            self.EverySamps, 0)
+        self.StartTask()
+
     def ReadContData(self, Fs, EverySamps):
         self.Fs = Fs
         self.EverySamps = np.int32(EverySamps)

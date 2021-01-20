@@ -304,6 +304,7 @@ class StbDetThread(Qt.QThread):
     NextDigital = Qt.pyqtSignal()
     CharactEnd = Qt.pyqtSignal()
     RefreshPlots = Qt.pyqtSignal()
+    ReadDaqInt = Qt.pyqtSignal()
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
                  VgSweep, MaxSlope, TimeOut, TimeBuffer,
@@ -470,6 +471,8 @@ class StbDetThread(Qt.QThread):
                             self.InitTimer()
                     else:
                         self.BufferDC.Reset()
+                else:
+                    self.on_ReadDaqInt()
 
             if self.State == 'WaitPSD':
                 if self.BufferPSD.IsFilled():
@@ -692,6 +695,10 @@ class StbDetThread(Qt.QThread):
     #             self.ACDict = None
     #         print('x')
     #         self.CharactEnd.emit()
+
+    def on_ReadDaqInt(self):
+        print('on_ReadDaqInt')
+        self.ReadDaqInt.emit()
 
     def on_refreshPlots(self):
         print('on_refreshplots')
