@@ -42,6 +42,7 @@ class ReadAnalog(Daq.Task):
 
     EveryNEvent = None
     DoneEvent = None
+    ContSamps = False
 
     def __init__(self, InChans, Range=5.0, Diff=False):
         Daq.Task.__init__(self)
