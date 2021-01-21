@@ -300,11 +300,13 @@ class SweepsConfig(pTypes.GroupParameter):
 
 
 class StbDetThread():
+
     # TODO Pasar a eventos
-    NextBias = Qt.pyqtSignal()
-    NextDigital = Qt.pyqtSignal()
-    CharactEnd = Qt.pyqtSignal()
-    RefreshPlots = Qt.pyqtSignal()
+    # NextBias = Qt.pyqtSignal()
+    EventNextBias = None
+    EventNextDigital = None
+    EventCharactEnd = None
+    EventRefreshPlots = None
     ReadDaqInt = Qt.pyqtSignal()
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
@@ -413,13 +415,14 @@ class StbDetThread():
         self.State = 'WaitStab'
 
     def NextBiasPoint(self):
+        print('NextBiasPoint')
         ### chanege state between "WaitStab" or "End"
         self.State = 'WaitStab'
         self.Stable = False
         self.VgIndex += 1
         if self.VgIndex < len(self.VgSweepVals):
             self.NextVgs = self.VgSweepVals[self.VgIndex]
-            self.NextBias.emit()
+            self.EventNextBias()
         else:
             self.VgIndex = 0
             self.NextVgs = self.VgSweepVals[self.VgIndex]
@@ -427,14 +430,14 @@ class StbDetThread():
             self.VdIndex += 1
             if self.VdIndex < len(self.VdSweepVals):
                 self.NextVds = self.VdSweepVals[self.VdIndex]
-                self.NextBias.emit()
+                self.EventNextBias()
             else:
                 self.VdIndex = 0
                 self.NextVds = self.VdSweepVals[self.VdIndex]
 
                 self.DigIndex += 1
                 if self.DigIndex < len(self.DigColumns):
-                    self.NextDigital.emit()
+                    self.EventNextDigital()
                 else:
                     self.DigIndex = 0
                     # TODO Check the way to save dicts
@@ -445,8 +448,11 @@ class StbDetThread():
                     #     self.ACDict = None
                     # print('x')
                     self.State = 'END'
-                    self.CharactEnd.emit()
-    
+                    self.EventCharactEnd()
+
+        if self.Stable is False and self.State == 'WaitStab':
+            self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
+
     def AddData(self, DataDC, DataAC):
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
@@ -533,8 +539,9 @@ class StbDetThread():
 
     def CalcSlope(self, DCData):
         print('CalcSlope')
-        self.Dev = np.ndarray((DCData[1],))
-        self.DCIds = np.ndarray((DCData[1], 1))
+        print(DCData.shape)
+        self.Dev = np.ndarray((DCData.shape[1],))
+        self.DCIds = np.ndarray((DCData.shape[1], 1))
 
         for ChnInd, dat in enumerate(DCData.transpose()):
             r = len(dat)
@@ -588,7 +595,7 @@ class StbDetThread():
 
     def on_refreshPlots(self):
         print('on_refreshplots')
-        self.RefreshPlots.emit()
+        self.EventRefreshPlots()
 
     def stop(self):
         # self.Timer.stop()
