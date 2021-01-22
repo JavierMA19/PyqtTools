@@ -370,7 +370,7 @@ class StbDetThread():
         self.nAvg = PSDKwargs['nAvg']
         self.scaling = 'density'
         self.PSDDuration = 2**self.nFFT*self.nAvg*(1/self.FsPSD)
-        self.PSDDone = None
+        self.WaitGetPSDData = None
         self.EventSwitch = None
 
         # Define Timer
@@ -455,6 +455,7 @@ class StbDetThread():
 
     def AddData(self, DataDC, DataAC):
         print('AddData')
+        print(DataDC.shape, DataAC.shape)
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
@@ -478,7 +479,8 @@ class StbDetThread():
         elif self.State == 'WaitPSD':
             print(self.State)
             # self.BufferPSD.AddData(DataAC)
-            if self.PSDDone:
+            if self.WaitGetPSDData:
+                self.CalcPSD(DataAC)
                 self.SaveDCAC.SaveACDict(psd=self.psd,
                                          ff=self.ff,
                                          SwVgsInd=self.VgIndex,
@@ -487,7 +489,7 @@ class StbDetThread():
                 if self.EventSwitch:
                     self.EventSwitch(Signal='DC')
                 self.on_refreshPlots()
-                self.PSDDone = None
+                self.WaitGetPSDData = False
                 self.NextBiasPoint()
 
         elif self.State == 'END':
@@ -582,19 +584,21 @@ class StbDetThread():
 
     def GetPSD(self):
         print('Acquire PSD data for', self.PSDDuration, 'seconds')
-        self.ACDataDoneEvent = self.CalcPSD
+        # self.ACDataDoneEvent = self.CalcPSD
         self.EventReadData(Fs=self.FsPSD,
-                           nSamps=(2**self.nFFT)*self.nAvg,
-                           EverySamps=2**self.nFFT)
+                            nSamps=(2**self.nFFT)*self.nAvg,
+                            # EverySamps es 512 (si paso de 1000 no responde)
+                            EverySamps=int(2**self.nFFT/2**8))
+        self.WaitGetPSDData = True
 
     def CalcPSD(self, Data):
         print('CalcPSD')
-        self.ff, self.psd = welch(self.BufferPSD,
+        self.ff, self.psd = welch(Data,
                                   fs=self.FsPSD,
                                   nperseg=2**self.nFFT,
                                   scaling=self.scaling,
                                   axis=0)
-        self.PSDDone = True
+        # self.PSDDone = True
 
     def on_refreshPlots(self):
         print('on_refreshplots')
