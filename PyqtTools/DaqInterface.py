@@ -64,6 +64,7 @@ class ReadAnalog(Daq.Task):
         self.AutoRegisterDoneEvent(0)
 
     def ReadData(self, Fs, nSamps, EverySamps):
+        print('ReadData')
         self.Fs = Fs
         self.EverySamps = EverySamps
 
@@ -74,6 +75,7 @@ class ReadAnalog(Daq.Task):
 
         self.AutoRegisterEveryNSamplesEvent(Daq.DAQmx_Val_Acquired_Into_Buffer,
                                             self.EverySamps, 0)
+        print('StarTask')
         self.StartTask()
 
     def ReadContData(self, Fs, EverySamps):
@@ -88,7 +90,6 @@ class ReadAnalog(Daq.Task):
         self.CfgInputBuffer(self.EverySamps*10)
         self.AutoRegisterEveryNSamplesEvent(Daq.DAQmx_Val_Acquired_Into_Buffer,
                                             self.EverySamps, 0)
-
         self.StartTask()
 
     def StopContData(self):
@@ -96,6 +97,7 @@ class ReadAnalog(Daq.Task):
         self.ContSamps = False
 
     def EveryNCallback(self):
+        print('EveryN')
         read = c_int32()
         data = np.zeros((self.EverySamps, len(self.Channels)))
         self.ReadAnalogF64(self.EverySamps, 10.0,
@@ -111,6 +113,7 @@ class ReadAnalog(Daq.Task):
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):
+        print('DoneCallback')
         self.StopTask()
         self.UnregisterEveryNSamplesEvent()
 

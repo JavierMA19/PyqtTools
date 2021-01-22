@@ -454,6 +454,7 @@ class StbDetThread():
             self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
     def AddData(self, DataDC, DataAC):
+        print('AddData')
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
@@ -475,6 +476,7 @@ class StbDetThread():
                 self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
         elif self.State == 'WaitPSD':
+            print(self.State)
             # self.BufferPSD.AddData(DataAC)
             if self.PSDDone:
                 self.SaveDCAC.SaveACDict(psd=self.psd,
@@ -586,6 +588,7 @@ class StbDetThread():
                            EverySamps=2**self.nFFT)
 
     def CalcPSD(self, Data):
+        print('CalcPSD')
         self.ff, self.psd = welch(self.BufferPSD,
                                   fs=self.FsPSD,
                                   nperseg=2**self.nFFT,
