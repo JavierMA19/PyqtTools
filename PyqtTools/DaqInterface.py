@@ -68,9 +68,8 @@ class ReadAnalog(Daq.Task):
         self.Fs = Fs
         self.EverySamps = EverySamps
 
-        print(Fs, nSamps, EverySamps)
-        self.data = np.ndarray([len(self.Channels), ])
-
+        self.Buffer = np.ndarray([nSamps, len(self.Channels)])
+        self.BufferIndex = 0
         self.CfgSampClkTiming("", Fs, Daq.DAQmx_Val_Rising,
                               Daq.DAQmx_Val_FiniteSamps, nSamps)
 
@@ -107,7 +106,9 @@ class ReadAnalog(Daq.Task):
 #        print('EveryN')
 
         if not self.ContSamps:
-            self.data = np.vstack((self.data, data))
+            self.Buffer[self.BufferIndex:self.BufferIndex + self.EverySamps, :] = data
+            self.BufferIndex += self.EverySamps
+            # self.data = np.vstack((self.data, data))
 
         if self.EveryNEvent:
             self.EveryNEvent(data)
@@ -118,7 +119,7 @@ class ReadAnalog(Daq.Task):
         self.UnregisterEveryNSamplesEvent()
 
         if self.DoneEvent:
-            self.DoneEvent(self.data[1:, :])
+            self.DoneEvent(self.Buffer[1:, :])
 
         return 0  # The function should return an integer
 

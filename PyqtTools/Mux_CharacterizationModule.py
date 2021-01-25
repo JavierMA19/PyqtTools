@@ -375,6 +375,10 @@ class StbDetThread():
 
         # Define Timer
         self.Timer = None
+        self.T1 = None
+
+        # Init TimeView Buffer
+        self.TimeViewFig, self.TimeViewAxs = plt.subplots()
 
         # Define the buffer size
         print('InitDCBuffer')
@@ -391,27 +395,7 @@ class StbDetThread():
                                   nFFT=self.nFFT,
                                   FsPSD=self.FsPSD,
                                   )
-        # if self.ACenable:
-            # Todo change by a local buffer
-            # BufferSize = (2**self.nFFT * PSDKwargs['nAvg'])
-            # print('BufferACSize', BufferSize)
-            # self.BufferPSD = PltBuffer2D.Buffer2D(self.FsPSD,
-            #                                       self.nChannels,
-            #                                       BufferSize/self.FsPSD)
 
-            # self.threadCalcPSD = CalcPSD(**PlotterDemodKwargs, nChannels=self.nChannels)
-            # self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
-            # self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-        #     self.threadCalcPSD = CalcPSD(**PSDKwargs,
-        #                                  nChannels=self.nChannels)
-        #     self.threadCalcPSD.PSDDone.connect(self.on_PSDDone)
-        #     self.SaveDCAC.PSDSaved.connect(self.on_NextVgs)
-        # else:
-        #     self.SaveDCAC.DCSaved.connect(self.on_NextVgs)
-
-        # self.SaveDCAC.DCSaved.connect(self.on_refreshPlots)
-        # self.SaveDCAC.PSDSaved.connect(self.on_refreshPlots)
-        # self.InitTimer()
         self.State = 'WaitStab'
 
     def NextBiasPoint(self):
@@ -455,7 +439,6 @@ class StbDetThread():
 
     def AddData(self, DataDC, DataAC):
         print('AddData')
-        print(DataDC.shape, DataAC.shape)
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
@@ -463,12 +446,15 @@ class StbDetThread():
                                          SwVgsInd=self.VgIndex,
                                          SwVdsInd=self.VdIndex,
                                          DigIndex=self.DigIndex)
+                print()
                 self.on_refreshPlots()
                 if self.ACenable:
                     if self.EventSwitch:
                         self.EventSwitch(Signal='AC')
                     self.State = 'WaitPSD'
+                    self.T1 = time.time()
                     self.GetPSD()
+                    
                 else:
                     # check for next point
                     self.NextBiasPoint()
@@ -477,9 +463,8 @@ class StbDetThread():
                 self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
         elif self.State == 'WaitPSD':
-            print(self.State)
-            # self.BufferPSD.AddData(DataAC)
             if self.WaitGetPSDData:
+                print(time.time()-self.T1, 'seconds')
                 self.CalcPSD(DataAC)
                 self.SaveDCAC.SaveACDict(psd=self.psd,
                                          ff=self.ff,
@@ -503,11 +488,11 @@ class StbDetThread():
         #     # self.Timer.setSingleShot(False)
         # else:
 
-        self.Timer = Qt.QTimer()
-        self.Timer.timeout.connect(self.TimeforStabilization)
-        self.Timer.setSingleShot(True)
-        self.Timer.start(self.TimeOut*1000)
-        print(self.TimeOut)
+        # self.Timer = Qt.QTimer()
+        # self.Timer.timeout.connect(self.TimeforStabilization)
+        # self.Timer.setSingleShot(True)
+        # self.Timer.start(self.TimeOut*1000)
+        # print(self.TimeOut)
 
         # if self.Stable is False:
         #     while self.Buffer.IsFilled():
@@ -556,6 +541,9 @@ class StbDetThread():
             self.Dev[ChnInd] = np.abs(np.mean(mm))  # slope (uA/s)
             self.DCIds[ChnInd] = oo
         Stab = 0
+
+        self.UpdateTimeViewPlot(DCData, time, np.mean(self.Dev))
+
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
                 if slope > self.MaxSlope:
@@ -584,11 +572,12 @@ class StbDetThread():
 
     def GetPSD(self):
         print('Acquire PSD data for', self.PSDDuration, 'seconds')
-        # self.ACDataDoneEvent = self.CalcPSD
+
         self.EventReadData(Fs=self.FsPSD,
-                            nSamps=(2**self.nFFT)*self.nAvg,
-                            # EverySamps es 512 (si paso de 1000 no responde)
-                            EverySamps=int(2**self.nFFT/2**8))
+                           nSamps=(2**self.nFFT)*self.nAvg,
+                           # EverySamps es 512 (si paso de 1000 no responde)
+                           EverySamps=int(2**self.nFFT/2**8))
+
         self.WaitGetPSDData = True
 
     def CalcPSD(self, Data):
@@ -601,8 +590,17 @@ class StbDetThread():
         # self.PSDDone = True
 
     def on_refreshPlots(self):
-        print('on_refreshplots')
         self.EventRefreshPlots()
+
+    def UpdateTimeViewPlot(self, Ids, Time, Dev):
+        while self.TimeViewAxs.lines:
+            self.TimeViewAxs.lines[0].remove()
+        self.TimeViewAxs.plot(Time, Ids)
+        self.TimeViewAxs.set_ylim(np.min(Ids), np.max(Ids))
+        self.TimeViewAxs.set_xlim(np.min(Time), np.max(Time))
+        if Dev:
+            self.TimeViewAxs.set_title(str(Dev))
+        self.TimeViewFig.canvas.draw()
 
     def stop(self):
         # self.Timer.stop()
@@ -706,7 +704,6 @@ class SaveDicts(QObject):
 
         return DevACVals
 
-    # AddDataDC??
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
@@ -715,16 +712,18 @@ class SaveDicts(QObject):
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
         j = 0
+
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
                 if chn.endswith(self.IndexDigitalLines[DigIndex]):         
-                    print(self.IndexDigitalLines[DigIndex])
+
                     self.DevDCVals[chn]['Ids'][SwVgsInd,
                                                SwVdsInd] = Ids[j]
                     self.DevDCVals[chn]['Dev'][SwVgsInd,
                                                SwVdsInd] = Dev[j]
                     j += 1
             else:
+
                 self.DevDCVals[chn]['Ids'][SwVgsInd,
                                            SwVdsInd] = Ids[inds]
                 self.DevDCVals[chn]['Dev'][SwVgsInd,
