@@ -301,13 +301,10 @@ class SweepsConfig(pTypes.GroupParameter):
 
 class StbDetThread():
 
-    # TODO Pasar a eventos
-    # NextBias = Qt.pyqtSignal()
     EventNextBias = None
     EventNextDigital = None
     EventCharactEnd = None
     EventRefreshPlots = None
-    ReadDaqInt = Qt.pyqtSignal()
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
                  VgSweep, MaxSlope, TimeOut, TimeBuffer,
@@ -381,7 +378,8 @@ class StbDetThread():
         self.TimeViewFig, self.TimeViewAxs = plt.subplots()
 
         # Define the buffer size
-        print('InitDCBuffer')
+        print('ChannelsNames')
+        print(ChnName)
         # self.BufferDC = PltBuffer2D.Buffer2D(self.FsDC,
         #                                      self.nChannels,
         #                                      TimeBuffer)
@@ -430,7 +428,7 @@ class StbDetThread():
                     #     self.ACDict = self.SaveDCAC.DevACVals
                     # else:
                     #     self.ACDict = None
-                    # print('x')
+                    print('x')
                     self.State = 'END'
                     self.EventCharactEnd()
 
@@ -446,7 +444,6 @@ class StbDetThread():
                                          SwVgsInd=self.VgIndex,
                                          SwVdsInd=self.VdIndex,
                                          DigIndex=self.DigIndex)
-                print()
                 self.on_refreshPlots()
                 if self.ACenable:
                     if self.EventSwitch:
@@ -603,13 +600,14 @@ class StbDetThread():
         self.TimeViewFig.canvas.draw()
 
     def stop(self):
+        print('Stop')
         # self.Timer.stop()
         # self.Timer.deleteLater()
         # if self.threadCalcPSD is not None:
         #     self.SaveDCAC.PSDSaved.disconnect()
         #     self.threadCalcPSD.PSDDone.disconnect()
         #     self.threadCalcPSD.stop()
-        self.terminate()
+        # self.terminate()
 
 
 class SaveDicts(QObject):
@@ -654,7 +652,7 @@ class SaveDicts(QObject):
                                                ChNames=self.ChNamesList)
 
     def InitDCRecord(self, nVds, nVgs, ChNames, Gate):
-
+        print(ChNames)
         Time = datetime.datetime.now()
         DevDCVals = {}
         for Ch in ChNames:
@@ -705,6 +703,7 @@ class SaveDicts(QObject):
         return DevACVals
 
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
+        print('SaveDCDIct')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
            Ids: array. Contains all the data to be saved in the DC dictionary
@@ -712,11 +711,9 @@ class SaveDicts(QObject):
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
         j = 0
-
         for chn, inds in self.ChannelIndex.items():
             if self.IndexDigitalLines:
                 if chn.endswith(self.IndexDigitalLines[DigIndex]):         
-
                     self.DevDCVals[chn]['Ids'][SwVgsInd,
                                                SwVdsInd] = Ids[j]
                     self.DevDCVals[chn]['Dev'][SwVgsInd,
@@ -805,14 +802,16 @@ class SaveDicts(QObject):
                             }
            Folder, Oblea, Disp, Name, Cycle: str.
         '''
+        print('Fodler', Folder)
+        print(Dcdict)
         self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
                                                      Oblea,
                                                      Disp,
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-        # with open(self.FileName, "wb") as f:
-        #     pickle.dump(Dcdict, f)
-        #     if Acdict is not None:
-        #         pickle.dump(Acdict, f)
+        with open(self.FileName, "wb") as f:
+            pickle.dump(Dcdict, f)
+            if Acdict is not None:
+                pickle.dump(Acdict, f)
         print('Saved')
