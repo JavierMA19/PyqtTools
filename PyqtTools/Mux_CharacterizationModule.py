@@ -187,11 +187,6 @@ ACParams = {'name': 'ACConfig',
                                         'type': 'int',
                                         'value': 17,
                                         'step': 1, },
-                                       # {'name': 'scaling',
-                                       #  'type': 'list',
-                                       #  'values': ['density',
-                                       #             'spectrum']
-                                       #  },
                                        {'name': 'PSD Duration',
                                         'type': 'float',
                                         'value': 20,
@@ -231,7 +226,7 @@ class SweepsConfig(pTypes.GroupParameter):
 
         self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
                                        self.VdParams.param('Vfinal').value(),
-                                       self.VdParams.param('NSweeps').value())
+                                       self.VdParams.param('NSweeps').value())    
 
     def FileDialog(self):
         RecordFile = QFileDialog.getExistingDirectory(self.QTparent,
@@ -370,19 +365,10 @@ class StbDetThread():
         self.WaitGetPSDData = None
         self.EventSwitch = None
 
-        # Define Timer
-        self.Timer = None
-        self.T1 = None
 
         # Init TimeView Buffer
         self.TimeViewFig, self.TimeViewAxs = plt.subplots()
 
-        # Define the buffer size
-        print('ChannelsNames')
-        print(ChnName)
-        # self.BufferDC = PltBuffer2D.Buffer2D(self.FsDC,
-        #                                      self.nChannels,
-        #                                      TimeBuffer)
         # Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
                                   SwVdsVals=VdSweep,
@@ -455,7 +441,6 @@ class StbDetThread():
                 else:
                     # check for next point
                     self.NextBiasPoint()
-                    self.InitTimer()
             else:
                 self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
@@ -478,54 +463,10 @@ class StbDetThread():
             pass
             # do nothing or warning....
 
-    def InitTimer(self):
-        print('InitTimer')
-        # if self.Timer:
-        #     print('Timer Exists')
-        #     # self.Timer.setSingleShot(False)
-        # else:
-
-        # self.Timer = Qt.QTimer()
-        # self.Timer.timeout.connect(self.TimeforStabilization)
-        # self.Timer.setSingleShot(True)
-        # self.Timer.start(self.TimeOut*1000)
-        # print(self.TimeOut)
-
-        # if self.Stable is False:
-        #     while self.Buffer.IsFilled():
-        #         continue
-
-        #     if self.Wait:
-        #         ### 
-        #         self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
-        #         Diff = self.DelayTime-self.ElapsedTime
-        #         if Diff <= 0:
-        #             print('Delay Time finished')
-        #             self.Wait = False
-        #             self.ElapsedTime = 0
-        #             self.Timer = Qt.QTimer()
-        #             self.Timer.timeout.connect(self.printTime)
-        #             self.Timer.setSingleShot(True)
-        #             self.Timer.start(self.TimeOut*1000)
-        #             # self.Timer.singleShot(self.TimeOut*1000, self.printTime)
-        #     else:
-        #         self.Buffer.AddData(NewData)
-
-        # if self.ACenable:
-        #     if self.Stable is True:
-        #         self.threadCalcPSD.AddData(NewData)
-
-    def TimeforStabilization(self):
-        print('TimeOut')
-        # self.CalcSlope()
-        self.Timer.stop()
-        self.Timer.deleteLater()
-
-        self.Stable = True
-
     def CalcSlope(self, DCData):
         print('CalcSlope')
         print(DCData.shape)
+        print(self.MaxSlope)
         self.Dev = np.ndarray((DCData.shape[1],))
         self.DCIds = np.ndarray((DCData.shape[1], 1))
 
@@ -560,11 +501,6 @@ class StbDetThread():
             if slope < self.MaxSlope:
                 self.Stable = True
   
-        # if self.Stable is False:
-        #     print('Wait for stabilization')
-                    ### check for timeout
-                # self.ElapsedTime = self.ElapsedTime+len(NewData[:,0])*(1/self.FsDC)
-
         return self.Stable
 
     def GetPSD(self):
@@ -584,7 +520,6 @@ class StbDetThread():
                                   nperseg=2**self.nFFT,
                                   scaling=self.scaling,
                                   axis=0)
-        # self.PSDDone = True
 
     def on_refreshPlots(self):
         self.EventRefreshPlots()
@@ -600,14 +535,8 @@ class StbDetThread():
         self.TimeViewFig.canvas.draw()
 
     def stop(self):
+        self.State = 'End'
         print('Stop')
-        # self.Timer.stop()
-        # self.Timer.deleteLater()
-        # if self.threadCalcPSD is not None:
-        #     self.SaveDCAC.PSDSaved.disconnect()
-        #     self.threadCalcPSD.PSDDone.disconnect()
-        #     self.threadCalcPSD.stop()
-        # self.terminate()
 
 
 class SaveDicts(QObject):
