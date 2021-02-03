@@ -86,12 +86,6 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                   'value': 10,
                                   'siPrefix': True,
                                   'suffix': 's'},
-                                 {'name': 'TimeBuffer',
-                                  'title': 'Buffer Time for Stabilization',
-                                  'type': 'int',
-                                  'value': 1,
-                                  'siPrefix': True,
-                                  'suffix': 's'},
                                  {'name': 'DelayTime',
                                   'title': 'Time to wait for acquisition',
                                   'type': 'int',
@@ -341,7 +335,6 @@ class StbDetThread():
         self.ACenable = ACenable
         self.StabCriteria = StabCriteria
         self.MaxSlope = MaxSlope
-        self.TimeOut = TimeOut
         self.DelayTime = DelayTime
         self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
@@ -364,7 +357,8 @@ class StbDetThread():
         self.PSDDuration = 2**self.nFFT*self.nAvg*(1/self.FsPSD)
         self.WaitGetPSDData = None
         self.EventSwitch = None
-
+        self.Timer = 0
+        self.TimeOut = TimeOut
 
         # Init TimeView Buffer
         self.TimeViewFig, self.TimeViewAxs = plt.subplots()
@@ -481,7 +475,7 @@ class StbDetThread():
         Stab = 0
 
         self.UpdateTimeViewPlot(DCData, time, np.mean(self.Dev))
-
+        
         if self.StabCriteria == 'All channels':
             for slope in self.Dev:
                 if slope > self.MaxSlope:
@@ -500,7 +494,16 @@ class StbDetThread():
             slope = np.mean(self.Dev)
             if slope < self.MaxSlope:
                 self.Stable = True
-  
+
+        if self.Stable:
+            self.Timer = 0
+        else:
+            if self.Timer >= self.TimeOut:
+                self.Stable = True
+                self.Timer = 0
+            else:
+                self.Timer += 1
+ 
         return self.Stable
 
     def GetPSD(self):
@@ -743,4 +746,10 @@ class SaveDicts(QObject):
             pickle.dump(Dcdict, f)
             if Acdict is not None:
                 pickle.dump(Acdict, f)
+            if Acdict:
+                dd.io.save(Filename, (Dcdict, Acdict), ('zlib', 1))
+#                pickle.dump(Acdict, open('SaveDcData.pkl', 'wb'))
+            else:
+                dd.io.save(Filename, Dcdict, ('zlib', 1))
+
         print('Saved')
