@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 import datetime
 from scipy.signal import welch
-
+import deepdish as dd
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 
@@ -296,9 +296,8 @@ class StbDetThread():
     EventRefreshPlots = None
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
-                 VgSweep, MaxSlope, TimeOut, TimeBuffer,
-                 DelayTime, nChannels, ChnName, DigColumns,
-                 IndexDigitalLines, PSDKwargs,
+                 VgSweep, MaxSlope, TimeOut, DelayTime, nChannels, ChnName,
+                 DigColumns, IndexDigitalLines, PSDKwargs,
                  **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
@@ -742,14 +741,14 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-        with open(self.FileName, "wb") as f:
-            pickle.dump(Dcdict, f)
-            if Acdict is not None:
-                pickle.dump(Acdict, f)
-            if Acdict:
-                dd.io.save(Filename, (Dcdict, Acdict), ('zlib', 1))
+        # with open(self.FileName, "wb") as f:
+            # pickle.dump(Dcdict, f)
+            # if Acdict is not None:
+            #     pickle.dump(Acdict, f)
+        if Acdict:
+            dd.io.save(self.FileName, (Dcdict, Acdict), ('zlib', 1))
 #                pickle.dump(Acdict, open('SaveDcData.pkl', 'wb'))
-            else:
-                dd.io.save(Filename, Dcdict, ('zlib', 1))
+        else:
+            dd.io.save(self.FileName, Dcdict, ('zlib', 1))
 
         print('Saved')
