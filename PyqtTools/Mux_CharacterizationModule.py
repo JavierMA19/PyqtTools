@@ -681,7 +681,7 @@ class SaveDicts(QObject):
                             SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff
 
-    def SaveDicts(self, Dcdict, Folder, Oblea, Disp, Name, Cycle, Acdict=None):
+    def SaveDicts(self, Folder, Oblea, Disp, Name, Cycle):
         '''Creates the appropiate Folder NAme to be upload to the database
            Dcdict: dictionary. Dictionary with DC characterization that has
                                the structure to be read and save correctly
@@ -741,6 +741,7 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
+<<<<<<< Updated upstream
         # with open(self.FileName, "wb") as f:
             # pickle.dump(Dcdict, f)
             # if Acdict is not None:
@@ -750,5 +751,12 @@ class SaveDicts(QObject):
 #                pickle.dump(Acdict, open('SaveDcData.pkl', 'wb'))
         else:
             dd.io.save(self.FileName, Dcdict, ('zlib', 1))
+=======
+        with open(self.FileName, "wb") as f:
+            if Acdict is not None:
+                pickle.dump((self.DevDCVals, self.DevACVals), f)
+            else:
+                pickle.dump(self.DevDCVals, f)
+>>>>>>> Stashed changes
 
         print('Saved')
