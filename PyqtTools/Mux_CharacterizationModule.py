@@ -563,6 +563,7 @@ class SaveDicts(QObject):
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = Channels
         self.DigColumns = DigColumns
+        self.ACenable = ACenable
         self.IndexDigitalLines = IndexDigitalLines
         self.DevDCVals = self.InitDCRecord(nVds=SwVdsVals,
                                            nVgs=SwVgsVals,
@@ -741,22 +742,11 @@ class SaveDicts(QObject):
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-<<<<<<< Updated upstream
-        # with open(self.FileName, "wb") as f:
-            # pickle.dump(Dcdict, f)
-            # if Acdict is not None:
-            #     pickle.dump(Acdict, f)
-        if Acdict:
-            dd.io.save(self.FileName, (Dcdict, Acdict), ('zlib', 1))
-#                pickle.dump(Acdict, open('SaveDcData.pkl', 'wb'))
-        else:
-            dd.io.save(self.FileName, Dcdict, ('zlib', 1))
-=======
+
         with open(self.FileName, "wb") as f:
-            if Acdict is not None:
+            if self.ACenable is not None:
                 pickle.dump((self.DevDCVals, self.DevACVals), f)
             else:
                 pickle.dump(self.DevDCVals, f)
->>>>>>> Stashed changes
 
         print('Saved')
