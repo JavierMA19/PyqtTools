@@ -735,16 +735,15 @@ class SaveDicts(QObject):
            Folder, Oblea, Disp, Name, Cycle: str.
         '''
         print('Fodler', Folder)
-        print(Dcdict)
         self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
                                                      Oblea,
                                                      Disp,
                                                      Name,
                                                      Cycle)
         print(self.FileName, '->-> Filename')
-
+        print(self.ACenable)
         with open(self.FileName, "wb") as f:
-            if self.ACenable is not None:
+            if self.ACenable:
                 pickle.dump((self.DevDCVals, self.DevACVals), f)
             else:
                 pickle.dump(self.DevDCVals, f)
