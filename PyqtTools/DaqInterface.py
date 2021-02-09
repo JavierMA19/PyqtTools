@@ -135,7 +135,7 @@ class WriteAnalog(Daq.Task):
         Dev = GetDevName()
         for Ch in Channels:
             self.CreateAOVoltageChan(Dev.format(Ch), "",
-                                     -5.0, 5.0, Daq.DAQmx_Val_Volts, None)
+                                     -10.0, 10.0, Daq.DAQmx_Val_Volts, None)
         self.DisableStartTrig()
         self.StopTask()
 
