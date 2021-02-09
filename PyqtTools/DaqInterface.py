@@ -64,7 +64,6 @@ class ReadAnalog(Daq.Task):
         self.AutoRegisterDoneEvent(0)
 
     def ReadData(self, Fs, nSamps, EverySamps):
-        print('ReadData')
         self.Fs = Fs
         self.EverySamps = EverySamps
 
@@ -103,7 +102,6 @@ class ReadAnalog(Daq.Task):
                            Daq.DAQmx_Val_GroupByScanNumber,
                            data, data.size, byref(read), None)
 
-#        print('EveryN')
 
         if not self.ContSamps:
             self.Buffer[self.BufferIndex:self.BufferIndex + self.EverySamps, :] = data
@@ -114,7 +112,6 @@ class ReadAnalog(Daq.Task):
             self.EveryNEvent(data)
 
     def DoneCallback(self, status):
-        print('DoneCallback')
         self.StopTask()
         self.UnregisterEveryNSamplesEvent()
 

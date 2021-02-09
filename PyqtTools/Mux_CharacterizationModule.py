@@ -376,7 +376,6 @@ class StbDetThread():
         self.State = 'WaitStab'
 
     def NextBiasPoint(self):
-        print('NextBiasPoint')
         ### chanege state between "WaitStab" or "End"
         self.State = 'WaitStab'
         self.Stable = False
@@ -407,7 +406,6 @@ class StbDetThread():
                     #     self.ACDict = self.SaveDCAC.DevACVals
                     # else:
                     #     self.ACDict = None
-                    print('x')
                     self.State = 'END'
                     self.EventCharactEnd()
 
@@ -415,7 +413,6 @@ class StbDetThread():
             self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
     def AddData(self, DataDC, DataAC):
-        print('AddData')
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
@@ -457,9 +454,6 @@ class StbDetThread():
             # do nothing or warning....
 
     def CalcSlope(self, DCData):
-        print('CalcSlope')
-        print(DCData.shape)
-        print(self.MaxSlope)
         self.Dev = np.ndarray((DCData.shape[1],))
         self.DCIds = np.ndarray((DCData.shape[1], 1))
 
@@ -507,7 +501,6 @@ class StbDetThread():
 
     def GetPSD(self):
         print('Acquire PSD data for', self.PSDDuration, 'seconds')
-
         self.EventReadData(Fs=self.FsPSD,
                            nSamps=(2**self.nFFT)*self.nAvg,
                            # EverySamps es 512 (si paso de 1000 no responde)
@@ -516,7 +509,6 @@ class StbDetThread():
         self.WaitGetPSDData = True
 
     def CalcPSD(self, Data):
-        print('CalcPSD')
         self.ff, self.psd = welch(Data,
                                   fs=self.FsPSD,
                                   nperseg=2**self.nFFT,
@@ -584,7 +576,6 @@ class SaveDicts(QObject):
                                                ChNames=self.ChNamesList)
 
     def InitDCRecord(self, nVds, nVgs, ChNames, Gate):
-        print(ChNames)
         Time = datetime.datetime.now()
         DevDCVals = {}
         for Ch in ChNames:
@@ -635,7 +626,6 @@ class SaveDicts(QObject):
         return DevACVals
 
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
-        print('SaveDCDIct')
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
            for database
            Ids: array. Contains all the data to be saved in the DC dictionary
