@@ -606,7 +606,6 @@ class SaveDicts(QObject):
            SwVgsInd: int. Is the index of the actual Vg Sweep Iteration
            SwVdsInd: int. Is the Index of the actual Vd Sweep iteration
         '''
-        print(self.ChannelIndex.items())
         for chn, inds in self.ChannelIndex.items():
             self.DevDCVals[chn]['Ids'][SwVgsInd,
                                        SwVdsInd] = Ids[inds]
