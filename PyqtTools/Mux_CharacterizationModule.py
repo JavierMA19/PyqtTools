@@ -415,6 +415,7 @@ class StbDetThread():
     def AddData(self, DataDC, DataAC):
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
+                # calcgate
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                          Dev=self.Dev,
                                          SwVgsInd=self.VgIndex,
@@ -498,6 +499,15 @@ class StbDetThread():
                 self.Timer += 1
  
         return self.Stable
+
+    def CalcGateData(self, GateData):
+        data = GateData[1:, :]
+        r, c = data.shape
+        x = np.arange(0, r)
+        mm, oo = np.polyfit(x, data, 1)
+        Igs = oo
+        return Igs
+
 
     def GetPSD(self):
         print('Acquire PSD data for', self.PSDDuration, 'seconds')
