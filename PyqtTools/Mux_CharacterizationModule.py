@@ -297,7 +297,7 @@ class StbDetThread():
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
                  VgSweep, MaxSlope, TimeOut, DelayTime, nChannels, ChnName,
-                 DigColumns, IndexDigitalLines, PSDKwargs,
+                 DigColumns, IndexDigitalLines, PSDKwargs, Gate,
                  **kwargs):
         '''Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
@@ -371,6 +371,7 @@ class StbDetThread():
                                   IndexDigitalLines=IndexDigitalLines,
                                   nFFT=self.nFFT,
                                   FsPSD=self.FsPSD,
+                                  Gate=Gate
                                   )
 
         self.State = 'WaitStab'
@@ -412,10 +413,18 @@ class StbDetThread():
         if self.Stable is False and self.State == 'WaitStab':
             self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
-    def AddData(self, DataDC, DataAC):
+    def AddData(self, DataDC, DataAC, GateData):
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 # calcgate
+                if GateData is not None:
+                    Ig = self.CalcGateData(GateData)
+                    self.SaveDCAC.SaveGateDCDict(Ig=Ig,
+                                                 SwVgsInd=self.VgIndex,
+                                                 SwVdsInd=self.VdIndex, )
+
+                                                   
+                    
                 self.SaveDCAC.SaveDCDict(Ids=self.DCIds,
                                          Dev=self.Dev,
                                          SwVgsInd=self.VgIndex,
@@ -501,12 +510,14 @@ class StbDetThread():
         return self.Stable
 
     def CalcGateData(self, GateData):
+        print('CalcGateData')
+        print(GateData.shape)
         data = GateData[1:, :]
         r, c = data.shape
         x = np.arange(0, r)
         mm, oo = np.polyfit(x, data, 1)
-        Igs = oo
-        return Igs
+        Ig = oo
+        return Ig
 
 
     def GetPSD(self):
@@ -561,7 +572,7 @@ class SaveDicts(QObject):
                            5000.0
         '''
         super(SaveDicts, self).__init__()
-
+        print(Gate, 'GGGAAATTTEEE')
         self.ChNamesList = sorted(Channels)
         self.ChannelIndex = Channels
         self.DigColumns = DigColumns
@@ -634,6 +645,10 @@ class SaveDicts(QObject):
             DevACVals[Ch] = ACVals
 
         return DevACVals
+
+    def SaveGateDCDict(self, Ig, SwVgsInd, SwVdsInd):
+        print('SaveGateDCDict')
+        self.DevDCVals['Gate']['Ig'][SwVgsInd, SwVdsInd] = Ig
 
     def SaveDCDict(self, Ids, Dev, SwVgsInd, SwVdsInd, DigIndex):
         '''Function that Saves Ids Data in the Dc Dict in the appropiate form
