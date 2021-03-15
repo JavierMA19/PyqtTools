@@ -86,12 +86,12 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                   'value': 10,
                                   'siPrefix': True,
                                   'suffix': 's'},
-                                 {'name': 'DelayTime',
-                                  'title': 'Time to wait for acquisition',
-                                  'type': 'int',
-                                  'value': 1,
-                                  'siPrefix': True,
-                                  'suffix': 's'},
+                                 # {'name': 'DelayTime',
+                                 #  'title': 'Time to wait for acquisition',
+                                 #  'type': 'int',
+                                 #  'value': 1,
+                                 #  'siPrefix': True,
+                                 #  'suffix': 's'},
                                  )}
 
 SaveSweepsParams = ({'name': 'SaveSweepConfig',
@@ -110,9 +110,13 @@ SaveSweepsParams = ({'name': 'SaveSweepConfig',
                                   {'name': 'Name',
                                    'type': 'str',
                                    'value': ''},
-                                  {'name': 'Cycle',
+                                  {'name': 'InitCycle',
                                    'type': 'int',
                                    'value': 0},
+                                  {'name': 'FinalCycle',
+                                   'type': 'int',
+                                   'value': 1},
+
                                   )
                      }
                     )
@@ -296,10 +300,11 @@ class StbDetThread():
     EventRefreshPlots = None
 
     def __init__(self, ACenable, StabCriteria, VdSweep,
-                 VgSweep, MaxSlope, TimeOut, DelayTime, nChannels, ChnName,
+                 VgSweep, MaxSlope, TimeOut, nChannels, ChnName,
                  DigColumns, IndexDigitalLines, PSDKwargs, Gate,
                  **kwargs):
-        '''Initialization for Stabilitation Detection Thread
+        '''
+           Initialization for Stabilitation Detection Thread
            VdVals: Array. Contains the values to use in the Vd Sweep.
                           [0.1, 0.2]
            VgVals: Array. Contains the values to use in the Vg Sweep
@@ -334,7 +339,6 @@ class StbDetThread():
         self.ACenable = ACenable
         self.StabCriteria = StabCriteria
         self.MaxSlope = MaxSlope
-        self.DelayTime = DelayTime
         self.FsDC = 1000
         self.DigColumns = sorted(DigColumns)
 
@@ -401,12 +405,6 @@ class StbDetThread():
                     self.EventNextDigital()
                 else:
                     self.DigIndex = 0
-                    # TODO Check the way to save dicts
-                    # self.DCDict = self.SaveDCAC.DevDCVals  ## ?????
-                    # if self.ACenable:
-                    #     self.ACDict = self.SaveDCAC.DevACVals
-                    # else:
-                    #     self.ACDict = None
                     self.State = 'END'
                     self.EventCharactEnd()
 
@@ -414,6 +412,7 @@ class StbDetThread():
             self.EventReadData(self.FsDC, self.FsDC, self.FsDC)
 
     def AddData(self, DataDC, DataAC, GateData):
+        print('AddData')
         if self.State == 'WaitStab':
             if self.CalcSlope(DataDC):
                 # calcgate
@@ -697,7 +696,7 @@ class SaveDicts(QObject):
                             SwVgsInd] = psd[:, inds].flatten()
                 self.DevACVals[chn]['Fpsd'] = ff
 
-    def SaveDicts(self, Folder, Oblea, Disp, Name, Cycle):
+    def SaveDicts(self, Folder, Oblea, Disp, Name, InitCycle, CurrentCy, FinalCycle):
         '''Creates the appropiate Folder NAme to be upload to the database
            Dcdict: dictionary. Dictionary with DC characterization that has
                                the structure to be read and save correctly
@@ -750,11 +749,12 @@ class SaveDicts(QObject):
            Folder, Oblea, Disp, Name, Cycle: str.
         '''
         print('Fodler', Folder)
+        print('Cycle', )
         self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
                                                      Oblea,
                                                      Disp,
                                                      Name,
-                                                     Cycle)
+                                                     CurrentCy)
         print(self.FileName, '->-> Filename')
         print(self.ACenable)
         with open(self.FileName, "wb") as f:
