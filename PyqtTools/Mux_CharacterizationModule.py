@@ -351,6 +351,9 @@ class StbDetThread():
         self.NextVgs = self.VgSweepVals[self.VgIndex]
         self.NextVds = self.VdSweepVals[self.VdIndex]
         self.nChannels = nChannels
+        self.Gate = Gate
+        self.IndexDigitalLines = IndexDigitalLines
+        self.ChnName = ChnName
 
         # Define Global variables for PSD
         self.FsPSD = PSDKwargs['Fs']
@@ -365,20 +368,22 @@ class StbDetThread():
 
         # Init TimeView Buffer
         self.TimeViewFig, self.TimeViewAxs = plt.subplots()
+        self.InitDictionaries()
+        self.State = 'WaitStab'     
 
+    def InitDictionaries(self):
         # Define DC and AC dictionaries
+
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
                                   SwVdsVals=self.VdSweepVals,
                                   SwVgsVals=self.VgSweepVals,
-                                  Channels=ChnName,
+                                  Channels=self.ChnName,
                                   DigColumns=self.DigColumns,
-                                  IndexDigitalLines=IndexDigitalLines,
+                                  IndexDigitalLines=self.IndexDigitalLines,
                                   nFFT=self.nFFT,
                                   FsPSD=self.FsPSD,
-                                  Gate=Gate
+                                  Gate=self.Gate
                                   )
-
-        self.State = 'WaitStab'
 
     def NextBiasPoint(self):
         ### chanege state between "WaitStab" or "End"
