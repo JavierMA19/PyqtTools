@@ -368,8 +368,8 @@ class StbDetThread():
 
         # Define DC and AC dictionaries
         self.SaveDCAC = SaveDicts(ACenable=self.ACenable,
-                                  SwVdsVals=VdSweep,
-                                  SwVgsVals=VgSweep,
+                                  SwVdsVals=self.VdSweepVals,
+                                  SwVgsVals=self.VgSweepVals,
                                   Channels=ChnName,
                                   DigColumns=self.DigColumns,
                                   IndexDigitalLines=IndexDigitalLines,
