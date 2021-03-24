@@ -56,6 +56,9 @@ ConfigSweepsParams = {'name': 'SweepsConfig',
                                                         'value': 4,
                                                         'siPrefix': True,
                                                         'suffix': 'Sweeps'},
+                                                       {'name': 'hysteresis',
+                                                        'type': 'bool',
+                                                        'value': False, },
                                                        )},
                                  {'name': 'VdSweep',
                                   'type': 'group',
@@ -143,9 +146,20 @@ class SweepsConfig(pTypes.GroupParameter):
         self.SvSwParams.param('Save File').sigActivated.connect(self.FileDialog)
 
     def on_Sweeps_Changed(self):
-        self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
-                                       self.VgParams.param('Vfinal').value(),
-                                       self.VgParams.param('NSweeps').value())
+        if self.VgParams.param('hysteresis').value():
+            v1 = np.linspace(self.VgParams.param('Vinit').value(),
+                             self.VgParams.param('Vfinal').value(),
+                             self.VgParams.param('NSweeps').value())
+
+            v2 = np.linspace(self.VgParams.param('Vfinal').value(),
+                             self.VgParams.param('Vinit').value(),
+                             self.VgParams.param('NSweeps').value())
+
+            self.VgSweepVals = np.hstack((v1, v2))
+        else:
+            self.VgSweepVals = np.linspace(self.VgParams.param('Vinit').value(),
+                                           self.VgParams.param('Vfinal').value(),
+                                           self.VgParams.param('NSweeps').value())
 
         self.VdSweepVals = np.linspace(self.VdParams.param('Vinit').value(),
                                        self.VdParams.param('Vfinal').value(),
