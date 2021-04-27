@@ -700,7 +700,7 @@ class SaveDicts(QObject):
                             }
            Folder, Oblea, Disp, Name, Cycle: str.
         '''
-        self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
+        self.FileName = '{}/{}-{}-{}-Cy{}.pkl'.format(Folder,
                                                      Oblea,
                                                      Disp,
                                                      Name,

@@ -755,11 +755,11 @@ class SaveDicts(QObject):
         '''
         print('Fodler', Folder)
         print('Cycle', )
-        self.FileName = '{}/{}-{}-{}-Cy{}.h5'.format(Folder,
-                                                     Oblea,
-                                                     Disp,
-                                                     Name,
-                                                     CurrentCy)
+        self.FileName = '{}/{}-{}-{}-Cy{}.pkl'.format(Folder,
+                                                  Oblea,
+                                                  Disp,
+                                                  Name,
+                                                  CurrentCy)
         print(self.FileName, '->-> Filename')
         print(self.ACenable)
         with open(self.FileName, "wb") as f:
